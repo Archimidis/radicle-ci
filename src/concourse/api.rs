@@ -5,8 +5,8 @@ use hyper::body::Buf;
 use hyper::client::HttpConnector;
 use hyper::header::{AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE};
 use serde::Deserialize;
-use crate::ci::CIJob;
 
+use crate::ci::CIJob;
 use crate::concourse::pipeline_configuration::PipelineConfiguration;
 use crate::concourse::pipeline_configuration_job::{PipelineConfigurationJob, PipelineConfigurationJobExtended};
 use crate::concourse::response_error::ResponseError;
@@ -71,10 +71,15 @@ impl ConcourseAPI {
     }
 
     pub async fn get_pipeline(&self, project_id: &String) -> Result<PipelineConfiguration> {
+        let access_token = match &self.token {
+            Some(token) => token.get_access_token()?,
+            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+        };
+
         let request = Request::builder()
             .method("GET")
             .uri(format!("{}/api/v1/teams/main/pipelines/{}-configure/config", self.concourse_uri, project_id))
-            .header(AUTHORIZATION, format!("Bearer {}", self.token.as_ref().unwrap().access_token))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .body("".into())?;
 
         let response = self.client.request(request).await?;
@@ -90,6 +95,11 @@ impl ConcourseAPI {
     }
 
     pub async fn create_pipeline(&self, job: &CIJob) -> Result<()> {
+        let access_token = match &self.token {
+            Some(token) => token.get_access_token()?,
+            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+        };
+
         let CIJob { project_name, patch_branch, patch_head, project_id, git_uri } = job;
 
         let body = format!(r#"
@@ -114,7 +124,7 @@ resources:
         let request = Request::builder()
             .method("PUT")
             .uri(format!("{}/api/v1/teams/main/pipelines/{}-configure/config", self.concourse_uri, project_id))
-            .header(AUTHORIZATION, format!("Bearer {}", self.token.as_ref().unwrap().access_token))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .header(CONTENT_TYPE, "application/x-yaml")
             .header("X-Concourse-Config-Version", "1")
             .body(body.into())?;
@@ -132,10 +142,15 @@ resources:
     }
 
     pub async fn unpause_pipeline(&self, project_id: &String) -> Result<()> {
+        let access_token = match &self.token {
+            Some(token) => token.get_access_token()?,
+            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+        };
+
         let request = Request::builder()
             .method("PUT")
             .uri(format!("{}/api/v1/teams/main/pipelines/{}-configure/unpause", self.concourse_uri, project_id))
-            .header(AUTHORIZATION, format!("Bearer {}", self.token.as_ref().unwrap().access_token))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .body("".into())?;
 
         let response = self.client.request(request).await?;
@@ -151,10 +166,15 @@ resources:
     }
 
     pub async fn trigger_pipeline_configuration(&self, project_id: &String) -> Result<PipelineConfigurationJobExtended> {
+        let access_token = match &self.token {
+            Some(token) => token.get_access_token()?,
+            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+        };
+
         let request: Request<Body> = Request::builder()
             .method("POST")
             .uri(format!("{}/api/v1/teams/main/pipelines/{}-configure/jobs/configure-pipeline/builds", self.concourse_uri, project_id))
-            .header(AUTHORIZATION, format!("Bearer {}", self.token.as_ref().unwrap().access_token))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .body("".into())?;
 
         let response = self.client.request(request).await?;
@@ -170,10 +190,15 @@ resources:
     }
 
     pub async fn get_pipeline_jobs(&self, project_id: &String) -> Result<Vec<PipelineConfigurationJob>> {
+        let access_token = match &self.token {
+            Some(token) => token.get_access_token()?,
+            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+        };
+
         let request = Request::builder()
             .method("GET")
             .uri(format!("{}/api/v1/teams/main/pipelines/{}/jobs", self.concourse_uri, project_id))
-            .header(AUTHORIZATION, format!("Bearer {}", self.token.as_ref().unwrap().access_token))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .body("".into())?;
 
         let response = self.client.request(request).await?;
@@ -189,10 +214,15 @@ resources:
     }
 
     pub async fn trigger_job(&self, project_id: &String, job_name: &String) -> Result<PipelineConfigurationJob> {
+        let access_token = match &self.token {
+            Some(token) => token.get_access_token()?,
+            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+        };
+
         let request = Request::builder()
             .method("POST")
             .uri(format!("{}/api/v1/teams/main/pipelines/{}/jobs/{}/builds", self.concourse_uri, project_id, job_name))
-            .header(AUTHORIZATION, format!("Bearer {}", self.token.as_ref().unwrap().access_token))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .body("".into())?;
 
         let response = self.client.request(request).await?;

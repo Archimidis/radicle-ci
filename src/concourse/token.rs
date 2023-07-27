@@ -1,3 +1,4 @@
+use std::string::FromUtf8Error;
 use secstr::SecStr;
 use serde::{Deserialize, Deserializer};
 use serde_json::Number;
@@ -33,6 +34,12 @@ pub struct Token {
     pub expires_in: std::time::Duration,
     pub id_token: String,
     pub token_type: TokenType,
+}
+
+impl Token {
+    pub fn get_access_token(&self) -> Result<String, FromUtf8Error> {
+        String::from_utf8(self.access_token.unsecure().to_vec())
+    }
 }
 
 pub fn deserialize_to_duration<'de, D>(deserializer: D) -> Result<std::time::Duration, D::Error>
