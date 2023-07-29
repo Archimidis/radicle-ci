@@ -52,6 +52,9 @@ impl ConcourseAPI {
         }
     }
 
+    /// Obtain credentials. This is how we get the access token required for all other API requests.
+    /// Notice the Authorization header. Its value is always the same and was found in the Concourse
+    /// repository.
     pub async fn get_access_token(&mut self) -> Result<Token> {
         let path = "/sky/issuer/token";
 
@@ -94,6 +97,15 @@ impl ConcourseAPI {
         }
     }
 
+    /// Create a new pipeline in concourse that will read pipelines from the git repository.
+    /// Some things to know about the configuration being sent to concourse:
+    /// 1. The `trigger` property is set to false because we don't want concourse to trigger jobs
+    ///    that the radicle-ci won't know about
+    /// 2. The project id is passed as value to the `set_pipeline property. This creates a new
+    ///    pipeline and sets its config to that of the file discovered in the git resource.
+    /// 3. By convention, we'll require the initial concourse pipeline to be in the file
+    ///    `.concourse/config.yaml`. The git repository that we want to execute a pipeline for is
+    ///    expected to have this file.
     pub async fn create_pipeline(&self, job: &CIJob) -> Result<()> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
@@ -141,6 +153,8 @@ resources:
         }
     }
 
+    /// After the pipeline is created it is in a paused state. This method will unpause it making it
+    /// available for execution.
     pub async fn unpause_pipeline(&self, project_id: &String) -> Result<()> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
@@ -165,6 +179,7 @@ resources:
         }
     }
 
+    /// Trigger the job in the project's pipeline.
     pub async fn trigger_pipeline_configuration(&self, project_id: &String) -> Result<PipelineConfigurationJobExtended> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
@@ -189,6 +204,7 @@ resources:
         }
     }
 
+    /// Get all jobs in the project's pipeline.
     pub async fn get_pipeline_jobs(&self, project_id: &String) -> Result<Vec<PipelineConfigurationJob>> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
