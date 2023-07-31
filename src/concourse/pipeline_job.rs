@@ -72,6 +72,17 @@ pub enum PipelineJob {
     FinishedJob(FinishedJob),
 }
 
+impl PipelineJob {
+    pub fn has_finished_successful(&self) -> bool {
+        match self {
+            PipelineJob::FinishedJob(job) => {
+                job.finished_build.status == JobStatus::Succeeded
+            }
+            _ => false
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::concourse::pipeline_job::{Build, JobInputs, JobStatus, PipelineJob};
