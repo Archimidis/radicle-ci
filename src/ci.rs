@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CIJob {
     pub project_name: String,
     pub patch_branch: String,
