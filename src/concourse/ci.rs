@@ -1,14 +1,14 @@
 use std::time::Duration;
 
 use anyhow::Error;
-use tokio::time::sleep;
-
 use radicle_term as term;
+use tokio::time::sleep;
 
 use crate::ci::{CI, CIJob};
 use crate::concourse::api::ConcourseAPI;
+use crate::concourse::pipeline_job::PipelineJob;
 
-pub(crate) struct ConcourseCI {
+pub struct ConcourseCI {
     runtime: tokio::runtime::Runtime,
     api: ConcourseAPI,
 }
@@ -47,14 +47,9 @@ impl CI for ConcourseCI {
 
             term::info!("Creating the pipeline");
             let result = self.api.create_pipeline(&job).await;
-
-            // TODO: Poll until pipeline is created
-            sleep(Duration::from_secs(10)).await;
-
-            if let Ok(()) = result {
-                term::info!("Pipeline configuration creation triggered");
-            } else {
-                return Err(anyhow::anyhow!("Failed to trigger create pipeline configuration"));
+            match result {
+                Ok(()) => term::info!("Pipeline configuration creation triggered"),
+                Err(error) => term::info!("Failed to trigger create pipeline configuration {:?}", error),
             }
 
             term::info!("Unpausing the pipeline");
@@ -78,21 +73,56 @@ impl CI for ConcourseCI {
                 return Err(anyhow::anyhow!("Failed to trigger pipeline configuration"));
             }
 
+            term::info!("start polling -------------------------------------");
             // TODO: Poll until pipeline configuration is completed
-            sleep(Duration::from_secs(10)).await;
+            loop {
+                let result = self.api.get_all_jobs().await;
+                match result {
+                    Ok(jobs) => {
+                        let job = jobs.get(0).unwrap();
+                        match job {
+                            PipelineJob::TriggeredJob(j) => println!("Triggered job {:?}", j.next_build.status),
+                            PipelineJob::FinishedJob(j) => println!("Finished job {:?}", j.finished_build.status),
+                        }
+
+                        let maybe_job = jobs.iter().find(|pipeline_job| {
+                            match pipeline_job {
+                                PipelineJob::TriggeredJob(job) => job.name == "configure-pipeline",
+                                PipelineJob::FinishedJob(job) => job.name == "configure-pipeline",
+                            }
+                        });
+
+                        let has_finished_successful = maybe_job.map(|job| {
+                            job.has_finished_successful()
+                        }).unwrap();
+
+                        if has_finished_successful {
+                            println!("Build has finished successfully");
+                            break;
+                        }
+                    }
+                    Err(error) => println!("Failed to get all jobs {:#?}", error),
+                }
+                sleep(Duration::from_secs(3)).await;
+            }
+            term::info!("end polling -------------------------------------");
 
             let result = self.api.get_pipeline_jobs(project_id).await;
-            if let Ok(ref jobs) = &result {
-                let job = jobs.get(0).unwrap();
-                term::info!("Pipeline jobs {:?}", jobs);
-                let result = self.api.trigger_job(project_id, &job.name).await;
-                match result {
-                    Ok(_) => term::info!("Job {} triggered", job.name),
-                    Err(_error) => term::info!("Unable to trigger job {}", job.name),
+            println!("result {:#?}", result);
+            match result {
+                Ok(ref jobs) => {
+                    let job_name = jobs.get(0).map(|job| job.name.clone()).unwrap();
+
+                    let result = self.api.trigger_job(project_id, &job_name).await;
+                    match result {
+                        Ok(job) => term::info!("Job {} triggered", job.name),
+                        Err(error) => term::info!("Unable to trigger job {:?}", error),
+                    }
                 }
-            } else {
-                term::info!("Failed to get pipeline jobs");
-                return Err(anyhow::anyhow!("Failed to get pipeline jobs"));
+                Err(error) => {
+                    println!("Failed to get pipeline jobs {:?}", error);
+                    return Err(anyhow::anyhow!("Failed to get pipeline jobs"));
+                }
             }
 
             Ok(())

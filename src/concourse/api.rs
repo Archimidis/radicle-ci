@@ -7,8 +7,8 @@ use hyper::header::{AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE};
 use serde::Deserialize;
 
 use crate::ci::CIJob;
-use crate::concourse::pipeline_configuration::PipelineConfiguration;
 use crate::concourse::pipeline_configuration_job::{PipelineConfigurationJob, PipelineConfigurationJobExtended};
+use crate::concourse::pipeline_job::PipelineJob;
 use crate::concourse::response_error::ResponseError;
 use crate::concourse::token::Token;
 
@@ -71,30 +71,6 @@ impl ConcourseAPI {
         self.token = Some(token.clone());
 
         Ok(token)
-    }
-
-    pub async fn get_pipeline(&self, project_id: &String) -> Result<PipelineConfiguration> {
-        let access_token = match &self.token {
-            Some(token) => token.get_access_token()?,
-            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
-        };
-
-        let request = Request::builder()
-            .method("GET")
-            .uri(format!("{}/api/v1/teams/main/pipelines/{}-configure/config", self.concourse_uri, project_id))
-            .header(AUTHORIZATION, format!("Bearer {access_token}"))
-            .body("".into())?;
-
-        let response = self.client.request(request).await?;
-        let status = response.status();
-
-        // Both 4xx and 5xx responses return a string body that cannot be parsed as JSON.
-        if status.is_client_error() || status.is_server_error() {
-            let string = deserialize_string_response(response).await?;
-            Err(Box::new(ResponseError { errors: vec![string], warnings: None }))
-        } else {
-            deserialize_json_response::<PipelineConfiguration>(response).await
-        }
     }
 
     /// Create a new pipeline in concourse that will read pipelines from the git repository.
@@ -201,6 +177,31 @@ resources:
             Err(Box::new(ResponseError { errors: vec![string], warnings: None }))
         } else {
             deserialize_json_response::<PipelineConfigurationJobExtended>(response).await
+        }
+    }
+
+    pub async fn get_all_jobs(&self) -> Result<Vec<PipelineJob>> {
+        let access_token = match &self.token {
+            Some(token) => token.get_access_token()?,
+            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+        };
+
+        let request = Request::builder()
+            .method("GET")
+            .uri(format!("{}/api/v1/jobs", self.concourse_uri))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
+            .body("".into())?;
+
+
+        let response = self.client.request(request).await?;
+        let status = response.status();
+
+        if status.is_client_error() || status.is_server_error() {
+            let string = deserialize_string_response(response).await?;
+            Err(Box::new(ResponseError { errors: vec![string], warnings: None }))
+        } else {
+            let result = deserialize_json_response::<Vec<PipelineJob>>(response).await?;
+            Ok(result)
         }
     }
 
