@@ -1,6 +1,6 @@
 use serde::{Deserialize, Deserializer};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, PartialEq)]
 pub struct JobInputs {
     pub name: String,
     pub resource: String,
@@ -50,7 +50,7 @@ pub struct TriggeredJob {
     pub pipeline_name: String,
     pub has_new_inputs: Option<bool>,
     pub next_build: Build,
-    pub inputs: Vec<JobInputs>,
+    pub inputs: Option<Vec<JobInputs>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -62,7 +62,7 @@ pub struct FinishedJob {
     pub pipeline_name: String,
     pub finished_build: Build,
     pub transition_build: Build,
-    pub inputs: Vec<JobInputs>,
+    pub inputs: Option<Vec<JobInputs>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -244,7 +244,7 @@ mod tests {
                 assert_eq!(job.pipeline_name, "heartwood-configure");
                 assert_eq!(job.next_build.status, JobStatus::Pending);
             }
-            PipelineJob::FinishedJob(_) => assert!(false, "expected triggered job"),
+            _ => assert!(false, "expected triggered job"),
         }
         Ok(())
     }
@@ -261,7 +261,7 @@ mod tests {
           "next_build": {
             "id": 2844,
             "name": "1",
-            "status": "pending",
+            "status": "started",
             "start_time": -62135596800,
             "end_time": -62135596800,
             "team_name": "main",
@@ -286,7 +286,7 @@ mod tests {
                 assert_eq!(job.pipeline_name, "heartwood-configure");
                 assert_eq!(job.next_build.status, JobStatus::Started);
             }
-            PipelineJob::FinishedJob(_) => assert!(false, "expected triggered job"),
+            _ => assert!(false, "expected triggered job"),
         }
         Ok(())
     }
@@ -332,9 +332,6 @@ mod tests {
         let job = serde_json::from_str::<PipelineJob>(json)?;
 
         match job {
-            PipelineJob::TriggeredJob(_) => {
-                assert!(false, "expected finished job")
-            }
             PipelineJob::FinishedJob(job) => {
                 assert_eq!(job.id, 76);
                 assert_eq!(job.name, "configure-pipeline");
@@ -344,7 +341,62 @@ mod tests {
                 assert_eq!(job.finished_build.status, JobStatus::Succeeded);
                 assert_eq!(job.transition_build.status, JobStatus::Succeeded);
             }
+            _ => assert!(false, "expected finished job"),
         }
+
+        Ok(())
+    }
+
+    #[test]
+    fn deserialize_finished_job_with_missing_inputs() -> Result<(), serde_json::Error> {
+        let json = r#"
+        {
+          "id": 76,
+          "name": "configure-pipeline",
+          "team_name": "main",
+          "pipeline_id": 70,
+          "pipeline_name": "heartwood-configure",
+          "has_new_inputs": true,
+          "finished_build": {
+            "id": 2844,
+            "name": "1",
+            "status": "succeeded",
+            "start_time": 1690735633,
+            "end_time": 1690735639,
+            "team_name": "main",
+            "pipeline_id": 70,
+            "pipeline_name": "heartwood-configure",
+            "job_name": "configure-pipeline"
+          },
+          "transition_build": {
+            "id": 2844,
+            "name": "1",
+            "status": "succeeded",
+            "start_time": 1690735633,
+            "end_time": 1690735639,
+            "team_name": "main",
+            "pipeline_id": 70,
+            "pipeline_name": "heartwood-configure",
+            "job_name": "configure-pipeline"
+          }
+        }"#;
+
+        let job = serde_json::from_str::<PipelineJob>(json)?;
+
+        match job {
+            PipelineJob::FinishedJob(job) => {
+                assert_eq!(job.id, 76);
+                assert_eq!(job.name, "configure-pipeline");
+                assert_eq!(job.team_name, "main");
+                assert_eq!(job.pipeline_id, 70);
+                assert_eq!(job.pipeline_name, "heartwood-configure");
+                assert_eq!(job.finished_build.status, JobStatus::Succeeded);
+                assert_eq!(job.transition_build.status, JobStatus::Succeeded);
+                assert_eq!(job.inputs, None);
+            }
+            _ => assert!(false, "expected finished job"),
+        }
+
         Ok(())
     }
 }
