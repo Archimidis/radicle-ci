@@ -73,42 +73,31 @@ impl CI for ConcourseCI {
                 return Err(anyhow::anyhow!("Failed to trigger pipeline configuration"));
             }
 
-            term::info!("start polling -------------------------------------");
-            // TODO: Poll until pipeline configuration is completed
             loop {
                 let result = self.api.get_all_jobs().await;
                 match result {
                     Ok(jobs) => {
                         let job = jobs.get(0).unwrap();
-                        match job {
-                            PipelineJob::TriggeredJob(j) => println!("Triggered job {:?}", j.next_build.status),
-                            PipelineJob::FinishedJob(j) => println!("Finished job {:?}", j.finished_build.status),
-                        }
+                        println!("Configuration pipeline job {} status: {:?}", job.get_name(), job.get_status());
 
-                        let maybe_job = jobs.iter().find(|pipeline_job| {
+                        let has_finished_successful = jobs.iter().find(|pipeline_job| {
                             match pipeline_job {
                                 PipelineJob::TriggeredJob(job) => job.name == "configure-pipeline",
                                 PipelineJob::FinishedJob(job) => job.name == "configure-pipeline",
                             }
-                        });
-
-                        let has_finished_successful = maybe_job.map(|job| {
-                            job.has_finished_successful()
-                        }).unwrap();
+                        }).map(|job| job.has_finished_successful()).unwrap();
 
                         if has_finished_successful {
-                            println!("Build has finished successfully");
+                            term::info!("Configuration pipeline job {} has finished successfully", job.get_name());
                             break;
                         }
                     }
-                    Err(error) => println!("Failed to get all jobs {:#?}", error),
+                    Err(error) => term::info!("Failed to get all jobs {:#?}", error),
                 }
                 sleep(Duration::from_secs(3)).await;
             }
-            term::info!("end polling -------------------------------------");
 
             let result = self.api.get_pipeline_jobs(project_id).await;
-            println!("result {:#?}", result);
             match result {
                 Ok(ref jobs) => {
                     let job_name = jobs.get(0).map(|job| job.name.clone()).unwrap();
@@ -120,7 +109,6 @@ impl CI for ConcourseCI {
                     }
                 }
                 Err(error) => {
-                    println!("Failed to get pipeline jobs {:?}", error);
                     return Err(anyhow::anyhow!("Failed to get pipeline jobs"));
                 }
             }

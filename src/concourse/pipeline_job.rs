@@ -6,7 +6,7 @@ pub struct JobInputs {
     pub resource: String,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum JobStatus {
     Pending,
     Started,
@@ -79,6 +79,20 @@ impl PipelineJob {
                 job.finished_build.status == JobStatus::Succeeded
             }
             _ => false
+        }
+    }
+
+    pub fn get_status(&self) -> JobStatus {
+        match self {
+            PipelineJob::TriggeredJob(job) => job.next_build.status,
+            PipelineJob::FinishedJob(job) => job.finished_build.status,
+        }
+    }
+
+    pub fn get_name(&self) -> String {
+        match self {
+            PipelineJob::TriggeredJob(job) => job.name.clone(),
+            PipelineJob::FinishedJob(job) => job.name.clone(),
         }
     }
 }
