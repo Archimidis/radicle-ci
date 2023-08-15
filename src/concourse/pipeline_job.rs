@@ -66,10 +66,20 @@ pub struct FinishedJob {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct Job {
+    pub id: usize,
+    pub name: String,
+    pub team_name: String,
+    pub pipeline_id: usize,
+    pub pipeline_name: String,
+}
+
+#[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum PipelineJob {
     TriggeredJob(TriggeredJob),
     FinishedJob(FinishedJob),
+    Job(Job),
 }
 
 impl PipelineJob {
@@ -86,6 +96,7 @@ impl PipelineJob {
         match self {
             PipelineJob::TriggeredJob(job) => job.next_build.status,
             PipelineJob::FinishedJob(job) => job.finished_build.status,
+            _ => JobStatus::Unknown,
         }
     }
 
@@ -93,6 +104,7 @@ impl PipelineJob {
         match self {
             PipelineJob::TriggeredJob(job) => job.name.clone(),
             PipelineJob::FinishedJob(job) => job.name.clone(),
+            PipelineJob::Job(job) => job.name.clone(),
         }
     }
 }
@@ -395,6 +407,33 @@ mod tests {
                 assert_eq!(job.inputs, None);
             }
             _ => assert!(false, "expected finished job"),
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn deserialize_generic_job() -> Result<(), serde_json::Error> {
+        let json = r#"
+        {
+          "id": 76,
+          "name": "configure-pipeline",
+          "team_name": "main",
+          "pipeline_id": 70,
+          "pipeline_name": "heartwood-configure"
+        }"#;
+
+        let job = serde_json::from_str::<PipelineJob>(json)?;
+
+        match job {
+            PipelineJob::Job(job) => {
+                assert_eq!(job.id, 76);
+                assert_eq!(job.name, "configure-pipeline");
+                assert_eq!(job.team_name, "main");
+                assert_eq!(job.pipeline_id, 70);
+                assert_eq!(job.pipeline_name, "heartwood-configure");
+            }
+            _ => assert!(false, "expected generic job"),
         }
 
         Ok(())
