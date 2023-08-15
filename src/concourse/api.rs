@@ -9,7 +9,6 @@ use serde::Deserialize;
 use crate::ci::CIJob;
 use crate::concourse::build::Build;
 use crate::concourse::pipeline::Pipeline;
-use crate::concourse::pipeline_configuration_job::{PipelineConfigurationJob};
 use crate::concourse::pipeline_job::PipelineJob;
 use crate::concourse::response_error::ResponseError;
 use crate::concourse::token::Token;
@@ -259,7 +258,7 @@ resources:
 
 
     /// Get all pipeline jobs.
-    pub async fn get_all_pipeline_jobs(&self, project_id: &String) -> Result<Vec<PipelineConfigurationJob>> {
+    pub async fn get_all_pipeline_jobs(&self, project_id: &String) -> Result<Vec<PipelineJob>> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
@@ -278,7 +277,7 @@ resources:
             let string = deserialize_string_response(response).await?;
             Err(Box::new(ResponseError { errors: vec![string], warnings: None }))
         } else {
-            let result = deserialize_json_response::<Vec<PipelineConfigurationJob>>(response).await?;
+            let result = deserialize_json_response::<Vec<PipelineJob>>(response).await?;
             Ok(result)
         }
     }
@@ -309,7 +308,7 @@ resources:
     }
 
     /// Trigger a new build for a specific pipeline job
-    pub async fn trigger_new_pipeline_job_build(&self, project_id: &String, job_name: &String) -> Result<PipelineConfigurationJob> {
+    pub async fn trigger_new_pipeline_job_build(&self, project_id: &String, job_name: &String) -> Result<Build> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
@@ -328,7 +327,7 @@ resources:
             let string = deserialize_string_response(response).await?;
             Err(Box::new(ResponseError { errors: vec![string], warnings: None }))
         } else {
-            let result = deserialize_json_response::<PipelineConfigurationJob>(response).await?;
+            let result = deserialize_json_response::<Build>(response).await?;
             Ok(result)
         }
     }
