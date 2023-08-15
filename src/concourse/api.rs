@@ -7,7 +7,7 @@ use hyper::header::{AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE};
 use serde::Deserialize;
 
 use crate::ci::CIJob;
-use crate::concourse::build::Build;
+use crate::concourse::build::{Build, BuildID};
 use crate::concourse::pipeline::Pipeline;
 use crate::concourse::pipeline_job::PipelineJob;
 use crate::concourse::response_error::ResponseError;
@@ -126,7 +126,7 @@ impl ConcourseAPI {
     }
 
     /// Returns a specific pipeline job build.
-    pub async fn get_build(&self, build_name: &String) -> Result<Build> {
+    pub async fn get_build(&self, build_id: &BuildID) -> Result<Build> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
@@ -134,7 +134,7 @@ impl ConcourseAPI {
 
         let request: Request<Body> = Request::builder()
             .method("GET")
-            .uri(format!("{}/api/v1/builds/{}", self.concourse_uri, build_name))
+            .uri(format!("{}/api/v1/builds/{}", self.concourse_uri, build_id))
             .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .body("".into())?;
 

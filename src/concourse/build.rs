@@ -1,6 +1,6 @@
 use serde::{Deserialize, Deserializer};
 
-type BuildID = usize;
+pub type BuildID = usize;
 type PipelineID = usize;
 
 #[derive(Debug, PartialEq)]
