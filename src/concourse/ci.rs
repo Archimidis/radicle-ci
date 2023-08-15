@@ -31,6 +31,45 @@ impl ConcourseCI {
 
         Self { runtime, api }
     }
+
+    pub async fn watch_configure_pipeline(&self) {
+        loop {
+            sleep(Duration::from_secs(3)).await;
+
+            let result = self.api.get_all_jobs().await;
+            match result {
+                Ok(jobs) => {
+                    println!("All jobs: {:#?}", jobs);
+                    let job = jobs.get(0).unwrap();
+                    println!("Configuration pipeline job {} status: {:?}", job.get_name(), job.get_status());
+
+
+                    let job = jobs.iter().find(|pipeline_job| {
+                        match pipeline_job {
+                            PipelineJob::TriggeredJob(job) => job.name == "configure-pipeline",
+                            PipelineJob::FinishedJob(job) => job.name == "configure-pipeline",
+                            _ => false,
+                        }
+                    }).unwrap();
+
+                    // job.has_finished_successful()
+                    let has_finished_successful = jobs.iter().find(|pipeline_job| {
+                        match pipeline_job {
+                            PipelineJob::TriggeredJob(job) => job.name == "configure-pipeline",
+                            PipelineJob::FinishedJob(job) => job.name == "configure-pipeline",
+                            _ => false,
+                        }
+                    }).map(|job| job.has_finished_successful()).unwrap();
+
+                    if has_finished_successful {
+                        term::info!("Configuration pipeline job {} has finished successfully", job.get_name());
+                        break;
+                    }
+                }
+                Err(error) => term::info!("Failed to get all jobs {:#?}", error),
+            }
+        }
+    }
 }
 
 impl CI for ConcourseCI {
@@ -73,45 +112,46 @@ impl CI for ConcourseCI {
                 return Err(anyhow::anyhow!("Failed to trigger pipeline configuration"));
             }
 
-            loop {
-                let result = self.api.get_all_jobs().await;
-                match result {
-                    Ok(jobs) => {
-                        let job = jobs.get(0).unwrap();
-                        println!("Configuration pipeline job {} status: {:?}", job.get_name(), job.get_status());
+            self.watch_configure_pipeline().await;
 
-                        let has_finished_successful = jobs.iter().find(|pipeline_job| {
-                            match pipeline_job {
-                                PipelineJob::TriggeredJob(job) => job.name == "configure-pipeline",
-                                PipelineJob::FinishedJob(job) => job.name == "configure-pipeline",
-                            }
-                        }).map(|job| job.has_finished_successful()).unwrap();
+            let result_job_name = self.api.get_all_pipeline_jobs(project_id).await
+                .map(|jobs| jobs.get(0).unwrap().get_name());
 
-                        if has_finished_successful {
-                            term::info!("Configuration pipeline job {} has finished successfully", job.get_name());
-                            break;
+            let build_result = match result_job_name {
+                Ok(job_name) => self.api.trigger_new_pipeline_job_build(project_id, &job_name).await,
+                Err(error) => {
+                    term::info!("Failed to get trigger new pipeline job build {:#?}", error);
+                    return Err(anyhow::anyhow!("Failed to get trigger new pipeline job build"));
+                }
+            };
+
+            let build_id = match build_result {
+                Ok(build) => build.id,
+                Err(error) => {
+                    term::info!("Failed to get pipeline job build {:#?}", error);
+                    return Err(anyhow::anyhow!("Failed to get pipeline job build"));
+                }
+            };
+
+            term::info!("[POLLING START] Build id: {}", build_id);
+            let build = loop {
+                sleep(Duration::from_secs(3)).await;
+                let build_result = self.api.get_build(&build_id).await;
+                match build_result {
+                    Ok(build) => {
+                        term::info!("Build {:#?}", build);
+                        if build.has_succeeded() {
+                            break build;
                         }
                     }
-                    Err(error) => term::info!("Failed to get all jobs {:#?}", error),
-                }
-                sleep(Duration::from_secs(3)).await;
-            }
-
-            let result = self.api.get_pipeline_jobs(project_id).await;
-            match result {
-                Ok(ref jobs) => {
-                    let job_name = jobs.get(0).map(|job| job.name.clone()).unwrap();
-
-                    let result = self.api.trigger_job(project_id, &job_name).await;
-                    match result {
-                        Ok(job) => term::info!("Job {} triggered", job.name),
-                        Err(error) => term::info!("Unable to trigger job {:?}", error),
+                    Err(error) => {
+                        term::info!("Failed to get pipeline job build {:#?}", error);
                     }
                 }
-                Err(error) => {
-                    return Err(anyhow::anyhow!("Failed to get pipeline jobs"));
-                }
-            }
+            };
+            term::info!("[POLLING END]");
+
+            term::info!("Build\n\tstatus: {:?}\n\tapi_url: {:?}", build.status, build.api_url);
 
             Ok(())
         })

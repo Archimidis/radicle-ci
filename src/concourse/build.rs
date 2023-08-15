@@ -40,6 +40,12 @@ pub struct Build {
     pub created_by: String,
 }
 
+impl Build {
+    pub fn has_succeeded(&self) -> bool {
+        self.status == BuildStatus::Succeeded
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::concourse::build::{Build, BuildStatus};
