@@ -75,6 +75,106 @@ impl ConcourseAPI {
         Ok(token)
     }
 
+    /// Returns a list of all pipelines.
+    pub async fn get_all_pipelines(&self) -> Result<Vec<Pipeline>> {
+        let access_token = match &self.token {
+            Some(token) => token.get_access_token()?,
+            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+        };
+
+        let request = Request::builder()
+            .method("GET")
+            .uri(format!("{}/api/v1/pipelines", self.concourse_uri))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
+            .body("".into())?;
+
+        let response = self.client.request(request).await?;
+        let status = response.status();
+
+        if status.is_client_error() || status.is_server_error() {
+            let string = deserialize_string_response(response).await?;
+            Err(Box::new(ResponseError { errors: vec![string], warnings: None }))
+        } else {
+            let result = deserialize_json_response::<Vec<Pipeline>>(response).await?;
+            Ok(result)
+        }
+    }
+
+    /// Returns a list of all pipeline jobs.
+    pub async fn get_all_jobs(&self) -> Result<Vec<PipelineJob>> {
+        let access_token = match &self.token {
+            Some(token) => token.get_access_token()?,
+            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+        };
+
+        let request = Request::builder()
+            .method("GET")
+            .uri(format!("{}/api/v1/jobs", self.concourse_uri))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
+            .body("".into())?;
+
+
+        let response = self.client.request(request).await?;
+        let status = response.status();
+
+        if status.is_client_error() || status.is_server_error() {
+            let string = deserialize_string_response(response).await?;
+            Err(Box::new(ResponseError { errors: vec![string], warnings: None }))
+        } else {
+            let result = deserialize_json_response::<Vec<PipelineJob>>(response).await?;
+            Ok(result)
+        }
+    }
+
+    /// Returns a specific pipeline job build.
+    pub async fn get_build(&self, build_name: &String) -> Result<Build> {
+        let access_token = match &self.token {
+            Some(token) => token.get_access_token()?,
+            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+        };
+
+        let request: Request<Body> = Request::builder()
+            .method("GET")
+            .uri(format!("{}/api/v1/builds/{}", self.concourse_uri, build_name))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
+            .body("".into())?;
+
+        let response = self.client.request(request).await?;
+        let status = response.status();
+
+        // Both 4xx and 5xx responses return a string body that cannot be parsed as JSON.
+        if status.is_client_error() || status.is_server_error() {
+            let string = deserialize_string_response(response).await?;
+            Err(Box::new(ResponseError { errors: vec![string], warnings: None }))
+        } else {
+            deserialize_json_response::<Build>(response).await
+        }
+    }
+
+    pub async fn get_configure_pipeline(&self, project_id: &String) -> Result<Pipeline> {
+        let access_token = match &self.token {
+            Some(token) => token.get_access_token()?,
+            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+        };
+
+        let request = Request::builder()
+            .method("GET")
+            .uri(format!("{}/api/v1/teams/main/pipelines/{}-configure", self.concourse_uri, project_id))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
+            .body("".into())?;
+
+        let response = self.client.request(request).await?;
+        let status = response.status();
+
+        // Both 4xx and 5xx responses return a string body that cannot be parsed as JSON.
+        if status.is_client_error() || status.is_server_error() {
+            let string = deserialize_string_response(response).await?;
+            Err(Box::new(ResponseError { errors: vec![string], warnings: None }))
+        } else {
+            deserialize_json_response::<Pipeline>(response).await
+        }
+    }
+
     /// Create a new pipeline in concourse that will read pipelines from the git repository.
     /// Some things to know about the configuration being sent to concourse:
     /// 1. The `trigger` property is set to false because we don't want concourse to trigger jobs
@@ -157,7 +257,33 @@ resources:
         }
     }
 
-    /// Trigger the job in the project's pipeline.
+
+    /// Get all pipeline jobs.
+    pub async fn get_all_pipeline_jobs(&self, project_id: &String) -> Result<Vec<PipelineConfigurationJob>> {
+        let access_token = match &self.token {
+            Some(token) => token.get_access_token()?,
+            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+        };
+
+        let request = Request::builder()
+            .method("GET")
+            .uri(format!("{}/api/v1/teams/main/pipelines/{}/jobs", self.concourse_uri, project_id))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
+            .body("".into())?;
+
+        let response = self.client.request(request).await?;
+        let status = response.status();
+
+        if status.is_client_error() || status.is_server_error() {
+            let string = deserialize_string_response(response).await?;
+            Err(Box::new(ResponseError { errors: vec![string], warnings: None }))
+        } else {
+            let result = deserialize_json_response::<Vec<PipelineConfigurationJob>>(response).await?;
+            Ok(result)
+        }
+    }
+
+    /// Trigger a new pipeline configuration job build.
     pub async fn trigger_pipeline_configuration(&self, project_id: &String) -> Result<PipelineConfigurationJobExtended> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
@@ -182,57 +308,8 @@ resources:
         }
     }
 
-    pub async fn get_all_jobs(&self) -> Result<Vec<PipelineJob>> {
-        let access_token = match &self.token {
-            Some(token) => token.get_access_token()?,
-            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
-        };
-
-        let request = Request::builder()
-            .method("GET")
-            .uri(format!("{}/api/v1/jobs", self.concourse_uri))
-            .header(AUTHORIZATION, format!("Bearer {access_token}"))
-            .body("".into())?;
-
-
-        let response = self.client.request(request).await?;
-        let status = response.status();
-
-        if status.is_client_error() || status.is_server_error() {
-            let string = deserialize_string_response(response).await?;
-            Err(Box::new(ResponseError { errors: vec![string], warnings: None }))
-        } else {
-            let result = deserialize_json_response::<Vec<PipelineJob>>(response).await?;
-            Ok(result)
-        }
-    }
-
-    /// Get all jobs in the project's pipeline.
-    pub async fn get_pipeline_jobs(&self, project_id: &String) -> Result<Vec<PipelineConfigurationJob>> {
-        let access_token = match &self.token {
-            Some(token) => token.get_access_token()?,
-            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
-        };
-
-        let request = Request::builder()
-            .method("GET")
-            .uri(format!("{}/api/v1/teams/main/pipelines/{}/jobs", self.concourse_uri, project_id))
-            .header(AUTHORIZATION, format!("Bearer {access_token}"))
-            .body("".into())?;
-
-        let response = self.client.request(request).await?;
-        let status = response.status();
-
-        if status.is_client_error() || status.is_server_error() {
-            let string = deserialize_string_response(response).await?;
-            Err(Box::new(ResponseError { errors: vec![string], warnings: None }))
-        } else {
-            let result = deserialize_json_response::<Vec<PipelineConfigurationJob>>(response).await?;
-            Ok(result)
-        }
-    }
-
-    pub async fn trigger_job(&self, project_id: &String, job_name: &String) -> Result<PipelineConfigurationJob> {
+    /// Trigger a new build for a specific pipeline job
+    pub async fn trigger_new_pipeline_job_build(&self, project_id: &String, job_name: &String) -> Result<PipelineConfigurationJob> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
@@ -256,8 +333,9 @@ resources:
         }
     }
 
-    /// Returns a list of all pipelines in concourse.
-    pub async fn get_pipelines(&self) -> Result<Vec<Pipeline>> {
+
+    /// Returns data for a specific pipeline job build.
+    pub async fn get_pipeline_job_build(&self, pipeline_name: &String, job_name: &String, build_name: &String) -> Result<Build> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
@@ -265,7 +343,7 @@ resources:
 
         let request = Request::builder()
             .method("GET")
-            .uri(format!("{}/api/v1/pipelines", self.concourse_uri))
+            .uri(format!("{}/api/v1/teams/main/pipelines/{}/jobs/{}/builds/{}", self.concourse_uri, pipeline_name, job_name, build_name))
             .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .body("".into())?;
 
@@ -276,13 +354,13 @@ resources:
             let string = deserialize_string_response(response).await?;
             Err(Box::new(ResponseError { errors: vec![string], warnings: None }))
         } else {
-            let result = deserialize_json_response::<Vec<Pipeline>>(response).await?;
+            let result = deserialize_json_response::<Build>(response).await?;
             Ok(result)
         }
     }
 
     /// Returns a list of all builds in concourse related to a specific pipeline job.
-    pub async fn get_builds_by_pipeline_job(&self, pipeline_name: &String, job_name: &String) -> Result<Vec<Build>> {
+    pub async fn get_all_pipeline_job_builds(&self, pipeline_name: &String, job_name: &String) -> Result<Vec<Build>> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
