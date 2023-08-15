@@ -9,7 +9,7 @@ use serde::Deserialize;
 use crate::ci::CIJob;
 use crate::concourse::build::Build;
 use crate::concourse::pipeline::Pipeline;
-use crate::concourse::pipeline_configuration_job::{PipelineConfigurationJob, PipelineConfigurationJobExtended};
+use crate::concourse::pipeline_configuration_job::{PipelineConfigurationJob};
 use crate::concourse::pipeline_job::PipelineJob;
 use crate::concourse::response_error::ResponseError;
 use crate::concourse::token::Token;
@@ -284,7 +284,7 @@ resources:
     }
 
     /// Trigger a new pipeline configuration job build.
-    pub async fn trigger_pipeline_configuration(&self, project_id: &String) -> Result<PipelineConfigurationJobExtended> {
+    pub async fn trigger_pipeline_configuration(&self, project_id: &String) -> Result<Build> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
@@ -304,7 +304,7 @@ resources:
             let string = deserialize_string_response(response).await?;
             Err(Box::new(ResponseError { errors: vec![string], warnings: None }))
         } else {
-            deserialize_json_response::<PipelineConfigurationJobExtended>(response).await
+            deserialize_json_response::<Build>(response).await
         }
     }
 

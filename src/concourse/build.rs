@@ -35,8 +35,8 @@ pub struct Build {
     pub job_name: String,
     pub pipeline_id: PipelineID,
     pub pipeline_name: String,
-    pub start_time: i64,
-    pub end_time: i64,
+    pub start_time: Option<i64>,
+    pub end_time: Option<i64>,
     pub created_by: String,
 }
 
@@ -71,8 +71,8 @@ mod tests {
         assert_eq!(build.job_name, "poc-job");
         assert_eq!(build.pipeline_id, 101);
         assert_eq!(build.pipeline_name, "heartwood");
-        assert_eq!(build.start_time, 1692021331);
-        assert_eq!(build.end_time, 1692021336);
+        assert_eq!(build.start_time, Some(1692021331));
+        assert_eq!(build.end_time, Some(1692021336));
         assert_eq!(build.created_by, "test");
 
         Ok(())
