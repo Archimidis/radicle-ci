@@ -3,8 +3,12 @@ use serde::{Deserialize, Deserializer};
 pub type BuildID = usize;
 type PipelineID = usize;
 
+
 #[derive(Debug, PartialEq)]
 pub enum BuildStatus {
+    Aborted,
+    Errored,
+    Failed,
     Pending,
     Started,
     Succeeded,
@@ -17,10 +21,13 @@ impl<'de> Deserialize<'de> for BuildStatus {
     {
         let s = String::deserialize(deserializer)?;
         Ok(match s.as_str() {
+            "aborted" => BuildStatus::Aborted,
+            "errored" => BuildStatus::Errored,
+            "failed" => BuildStatus::Failed,
             "pending" => BuildStatus::Pending,
             "started" => BuildStatus::Started,
             "succeeded" => BuildStatus::Succeeded,
-            unknown => BuildStatus::Unknown(unknown.into()),
+            _ => BuildStatus::Unknown(s),
         })
     }
 }
@@ -43,6 +50,10 @@ pub struct Build {
 impl Build {
     pub fn has_succeeded(&self) -> bool {
         self.status == BuildStatus::Succeeded
+    }
+
+    pub fn has_stopped(&self) -> bool {
+        self.status != BuildStatus::Started && self.status != BuildStatus::Pending
     }
 }
 
