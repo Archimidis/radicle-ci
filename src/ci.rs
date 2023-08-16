@@ -1,3 +1,15 @@
+#[derive(Debug)]
+pub enum CIResultStatus {
+    Success,
+    Failure,
+}
+
+#[derive(Debug)]
+pub struct CIResult {
+    pub status: CIResultStatus,
+    pub message: Option<String>,
+}
+
 #[derive(Clone, Debug)]
 pub struct CIJob {
     pub project_name: String,
@@ -9,6 +21,5 @@ pub struct CIJob {
 
 pub trait CI: Clone {
     fn setup(&mut self, job: CIJob) -> Result<(), anyhow::Error>;
-    fn run_pipeline(&self, project_id: &String) -> Result<(), anyhow::Error>;
-    // TODO: watch
+    fn run_pipeline(&self, project_id: &String) -> Result<CIResult, anyhow::Error>;
 }

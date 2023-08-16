@@ -32,7 +32,15 @@ impl<T: CI + Send> Worker<T> {
             project_id: project_id.clone(),
             git_uri,
         }).unwrap();
-        self.ci.run_pipeline(&project_id).unwrap();
+        let result = self.ci.run_pipeline(&project_id);
+        match result {
+            Ok(result) => {
+                term::info!("[{}] CI pipeline job completed successfully with status {:?} and message: {:?}", self.id, result.status, result.message);
+            }
+            Err(error) => {
+                term::info!("[{}] CI pipeline job encountered an error: {:?}", self.id, error);
+            }
+        }
     }
 }
 

@@ -3,7 +3,7 @@ use std::time::Duration;
 use radicle_term as term;
 use tokio::time::sleep;
 
-use crate::ci::{CI, CIJob};
+use crate::ci::{CI, CIJob, CIResult, CIResultStatus};
 use crate::concourse::api::ConcourseAPI;
 use crate::concourse::build::{Build, BuildID};
 use crate::concourse::pipeline_job::PipelineJob;
@@ -116,7 +116,7 @@ impl CI for ConcourseCI {
         })
     }
 
-    fn run_pipeline(&self, project_id: &String) -> Result<(), anyhow::Error> {
+    fn run_pipeline(&self, project_id: &String) -> Result<CIResult, anyhow::Error> {
         self.runtime.block_on(async {
             let result = self.api.trigger_pipeline_configuration(project_id).await;
             if let Ok(pipeline_configuration_job) = result {
@@ -154,9 +154,11 @@ impl CI for ConcourseCI {
 
             self.watch_pipeline_job_build(build_id).await.map(|build| {
                 term::info!("Build\n\tstatus: {:?}\n\tapi_url: {:?}", build.status, build.api_url);
-            }).unwrap();
-
-            Ok(())
+                CIResult {
+                    status: if build.has_completed_successfully() { CIResultStatus::Success } else { CIResultStatus::Failure},
+                    message: build.api_url,
+                }
+            })
         })
     }
 }
