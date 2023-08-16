@@ -1,44 +1,11 @@
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
+
+use crate::concourse::build::{Build, BuildStatus};
 
 #[derive(Debug, Deserialize, PartialEq)]
 pub struct JobInputs {
     pub name: String,
     pub resource: String,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub enum JobStatus {
-    Pending,
-    Started,
-    Succeeded,
-    Unknown,
-}
-
-impl<'de> Deserialize<'de> for JobStatus {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where D: Deserializer<'de>
-    {
-        let s = String::deserialize(deserializer)?;
-        Ok(match s.as_str() {
-            "pending" => JobStatus::Pending,
-            "started" => JobStatus::Started,
-            "succeeded" => JobStatus::Succeeded,
-            _ => JobStatus::Unknown,
-        })
-    }
-}
-
-#[derive(Debug, Deserialize)]
-pub struct Build {
-    pub id: usize,
-    pub name: String,
-    pub status: JobStatus,
-    pub start_time: i64,
-    pub end_time: i64,
-    pub team_name: String,
-    pub pipeline_id: usize,
-    pub pipeline_name: String,
-    pub job_name: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -86,17 +53,17 @@ impl PipelineJob {
     pub fn has_finished_successful(&self) -> bool {
         match self {
             PipelineJob::FinishedJob(job) => {
-                job.finished_build.status == JobStatus::Succeeded
+                job.finished_build.status == BuildStatus::Succeeded
             }
             _ => false
         }
     }
 
-    pub fn get_status(&self) -> JobStatus {
+    pub fn get_status(&self) -> BuildStatus {
         match self {
-            PipelineJob::TriggeredJob(job) => job.next_build.status,
-            PipelineJob::FinishedJob(job) => job.finished_build.status,
-            _ => JobStatus::Unknown,
+            PipelineJob::TriggeredJob(job) => job.next_build.status.clone(),
+            PipelineJob::FinishedJob(job) => job.finished_build.status.clone(),
+            _ => BuildStatus::Unknown(String::from("unknown")),
         }
     }
 
@@ -111,7 +78,7 @@ impl PipelineJob {
 
 #[cfg(test)]
 mod tests {
-    use crate::concourse::pipeline_job::{Build, JobInputs, JobStatus, PipelineJob};
+    use crate::concourse::pipeline_job::{Build, BuildStatus, JobInputs, PipelineJob};
 
     #[test]
     fn will_successfully_deserialize_job_inputs() -> Result<(), serde_json::Error> {
@@ -148,9 +115,9 @@ mod tests {
 
         assert_eq!(build.id, 2844);
         assert_eq!(build.name, "1");
-        assert_eq!(build.status, JobStatus::Pending);
-        assert_eq!(build.start_time, -62135596800);
-        assert_eq!(build.end_time, -62135596800);
+        assert_eq!(build.status, BuildStatus::Pending);
+        assert_eq!(build.start_time, Some(-62135596800));
+        assert_eq!(build.end_time, Some(-62135596800));
         assert_eq!(build.team_name, "main");
         assert_eq!(build.pipeline_id, 70);
         assert_eq!(build.pipeline_name, "heartwood-configure");
@@ -178,9 +145,9 @@ mod tests {
 
         assert_eq!(build.id, 2844);
         assert_eq!(build.name, "1");
-        assert_eq!(build.status, JobStatus::Started);
-        assert_eq!(build.start_time, 1690735633);
-        assert_eq!(build.end_time, -62135596800);
+        assert_eq!(build.status, BuildStatus::Started);
+        assert_eq!(build.start_time, Some(1690735633));
+        assert_eq!(build.end_time, Some(-62135596800));
         assert_eq!(build.team_name, "main");
         assert_eq!(build.pipeline_id, 70);
         assert_eq!(build.pipeline_name, "heartwood-configure");
@@ -208,9 +175,9 @@ mod tests {
 
         assert_eq!(build.id, 2844);
         assert_eq!(build.name, "1");
-        assert_eq!(build.status, JobStatus::Succeeded);
-        assert_eq!(build.start_time, 1690735633);
-        assert_eq!(build.end_time, 1690735639);
+        assert_eq!(build.status, BuildStatus::Succeeded);
+        assert_eq!(build.start_time, Some(1690735633));
+        assert_eq!(build.end_time, Some(1690735639));
         assert_eq!(build.team_name, "main");
         assert_eq!(build.pipeline_id, 70);
         assert_eq!(build.pipeline_name, "heartwood-configure");
@@ -254,7 +221,7 @@ mod tests {
                 assert_eq!(job.team_name, "main");
                 assert_eq!(job.pipeline_id, 70);
                 assert_eq!(job.pipeline_name, "heartwood-configure");
-                assert_eq!(job.next_build.status, JobStatus::Pending);
+                assert_eq!(job.next_build.status, BuildStatus::Pending);
             }
             _ => assert!(false, "expected triggered job"),
         }
@@ -296,7 +263,7 @@ mod tests {
                 assert_eq!(job.team_name, "main");
                 assert_eq!(job.pipeline_id, 70);
                 assert_eq!(job.pipeline_name, "heartwood-configure");
-                assert_eq!(job.next_build.status, JobStatus::Started);
+                assert_eq!(job.next_build.status, BuildStatus::Started);
             }
             _ => assert!(false, "expected triggered job"),
         }
@@ -350,8 +317,8 @@ mod tests {
                 assert_eq!(job.team_name, "main");
                 assert_eq!(job.pipeline_id, 70);
                 assert_eq!(job.pipeline_name, "heartwood-configure");
-                assert_eq!(job.finished_build.status, JobStatus::Succeeded);
-                assert_eq!(job.transition_build.status, JobStatus::Succeeded);
+                assert_eq!(job.finished_build.status, BuildStatus::Succeeded);
+                assert_eq!(job.transition_build.status, BuildStatus::Succeeded);
             }
             _ => assert!(false, "expected finished job"),
         }
@@ -402,8 +369,8 @@ mod tests {
                 assert_eq!(job.team_name, "main");
                 assert_eq!(job.pipeline_id, 70);
                 assert_eq!(job.pipeline_name, "heartwood-configure");
-                assert_eq!(job.finished_build.status, JobStatus::Succeeded);
-                assert_eq!(job.transition_build.status, JobStatus::Succeeded);
+                assert_eq!(job.finished_build.status, BuildStatus::Succeeded);
+                assert_eq!(job.transition_build.status, BuildStatus::Succeeded);
                 assert_eq!(job.inputs, None);
             }
             _ => assert!(false, "expected finished job"),

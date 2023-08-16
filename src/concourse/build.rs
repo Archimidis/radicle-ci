@@ -4,7 +4,7 @@ pub type BuildID = usize;
 type PipelineID = usize;
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum BuildStatus {
     Aborted,
     Errored,
@@ -32,19 +32,19 @@ impl<'de> Deserialize<'de> for BuildStatus {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Build {
     pub id: BuildID,
     pub team_name: String,
     pub name: String,
     pub status: BuildStatus,
-    pub api_url: String,
+    pub api_url: Option<String>,
     pub job_name: String,
     pub pipeline_id: PipelineID,
     pub pipeline_name: String,
     pub start_time: Option<i64>,
     pub end_time: Option<i64>,
-    pub created_by: String,
+    pub created_by: Option<String>,
 }
 
 impl Build {
@@ -84,13 +84,13 @@ mod tests {
         assert_eq!(build.team_name, "main");
         assert_eq!(build.name, "4");
         assert_eq!(build.status, BuildStatus::Succeeded);
-        assert_eq!(build.api_url, "/api/v1/builds/3094");
+        assert_eq!(build.api_url, Some(String::from("/api/v1/builds/3094")));
         assert_eq!(build.job_name, "poc-job");
         assert_eq!(build.pipeline_id, 101);
         assert_eq!(build.pipeline_name, "heartwood");
         assert_eq!(build.start_time, Some(1692021331));
         assert_eq!(build.end_time, Some(1692021336));
-        assert_eq!(build.created_by, "test");
+        assert_eq!(build.created_by, Some(String::from("test")));
 
         Ok(())
     }
