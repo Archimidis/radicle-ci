@@ -70,7 +70,6 @@ impl ConcourseCI {
             let build_result = self.api.get_build(&build_id).await;
             match build_result {
                 Ok(build) => {
-                    term::info!("Build {:#?}", build); // TODO: remove
                     if build.has_completed() {
                         term::info!("Pipeline job build #{} has completed execution", build_id);
                         break Ok(build);
