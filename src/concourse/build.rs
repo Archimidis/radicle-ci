@@ -48,12 +48,16 @@ pub struct Build {
 }
 
 impl Build {
-    pub fn has_succeeded(&self) -> bool {
-        self.status == BuildStatus::Succeeded
+    pub fn has_completed(&self) -> bool {
+        match self.status {
+            BuildStatus::Started => false,
+            BuildStatus::Pending => false,
+            _ => true,
+        }
     }
 
-    pub fn has_stopped(&self) -> bool {
-        self.status != BuildStatus::Started && self.status != BuildStatus::Pending
+    pub fn has_completed_successfully(&self) -> bool {
+        self.status == BuildStatus::Succeeded
     }
 }
 

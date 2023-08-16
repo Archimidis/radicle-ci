@@ -2,13 +2,13 @@ use serde::Deserialize;
 
 use crate::concourse::build::{Build, BuildStatus};
 
-#[derive(Debug, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct JobInputs {
     pub name: String,
     pub resource: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct TriggeredJob {
     pub id: usize,
     pub name: String,
@@ -20,7 +20,7 @@ pub struct TriggeredJob {
     pub inputs: Option<Vec<JobInputs>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct FinishedJob {
     pub id: usize,
     pub name: String,
@@ -32,7 +32,7 @@ pub struct FinishedJob {
     pub inputs: Option<Vec<JobInputs>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Job {
     pub id: usize,
     pub name: String,
@@ -41,7 +41,7 @@ pub struct Job {
     pub pipeline_name: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
 pub enum PipelineJob {
     TriggeredJob(TriggeredJob),
@@ -50,12 +50,26 @@ pub enum PipelineJob {
 }
 
 impl PipelineJob {
-    pub fn has_finished_successful(&self) -> bool {
+    pub fn is_named(&self, job_name: &String) -> bool {
         match self {
-            PipelineJob::FinishedJob(job) => {
-                job.finished_build.status == BuildStatus::Succeeded
-            }
+            PipelineJob::TriggeredJob(job) => job.name == *job_name,
+            PipelineJob::FinishedJob(job) => job.name == *job_name,
+            PipelineJob::Job(job) => job.name == *job_name,
+        }
+    }
+
+    pub fn has_completed_successfully(&self) -> bool {
+        match self {
+            PipelineJob::FinishedJob(job) => job.finished_build.has_completed_successfully(),
             _ => false
+        }
+    }
+
+    pub fn has_completed(&self) -> bool {
+        match self {
+            PipelineJob::TriggeredJob(_) => false,
+            PipelineJob::FinishedJob(job) => job.finished_build.has_completed(),
+            PipelineJob::Job(_) => true,
         }
     }
 
