@@ -4,15 +4,15 @@ use std::thread::JoinHandle;
 use crossbeam_channel::{Receiver, RecvError};
 use radicle_term as term;
 
-use crate::ci::{CI, CIJob};
-use crate::worker::Worker;
+use crate::ci::{CI};
+use crate::worker::{Worker, WorkerContext};
 
 pub struct Pool {
     workers: Vec<JoinHandle<Result<(), RecvError>>>,
 }
 
 impl Pool {
-    pub fn with<T: 'static + CI + Send>(receiver: Receiver<CIJob>, handle: T) -> Self {
+    pub fn with<T: 'static + CI + Send>(receiver: Receiver<WorkerContext>, handle: T) -> Self {
         // TODO: Make capacity configurable
         let capacity = 5;
         let mut workers = Vec::with_capacity(capacity);

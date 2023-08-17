@@ -1,16 +1,31 @@
 use crossbeam_channel::{Receiver, RecvError};
+use radicle::cob::patch::{Patches};
+use radicle::prelude::{Id, ReadStorage};
+use radicle::Profile;
 use radicle_term as term;
 
 use crate::ci::{CI, CIJob};
 
+pub struct WorkerContext {
+    patch_id: String,
+    profile: Profile,
+    rid: Id,
+}
+
+impl WorkerContext {
+    pub fn new(rid: Id, patch_id: String, profile: Profile) -> Self {
+        Self { rid, patch_id, profile }
+    }
+}
+
 pub struct Worker<T: CI + Send> {
     pub(crate) id: usize,
-    receiver: Receiver<CIJob>,
+    receiver: Receiver<WorkerContext>,
     ci: T,
 }
 
 impl<T: CI + Send> Worker<T> {
-    pub fn new(id: usize, receiver: Receiver<CIJob>, ci: T) -> Self {
+    pub fn new(id: usize, receiver: Receiver<WorkerContext>, ci: T) -> Self {
         Self { id, receiver, ci }
     }
 
@@ -21,26 +36,35 @@ impl<T: CI + Send> Worker<T> {
         }
     }
 
-    fn process(&mut self, job: CIJob) {
-        term::info!("[{}] Worker {} received job: {:?}", self.id, self.id, job);
-        let CIJob { project_name, patch_branch, patch_head, project_id, git_uri } = job;
+    fn process(&mut self, WorkerContext { patch_id, rid, profile }: WorkerContext) {
+        term::info!("[{}] Worker {} received job", self.id, self.id);
 
-        self.ci.setup(CIJob {
-            project_name,
-            patch_branch,
-            patch_head,
-            project_id: project_id.clone(),
-            git_uri,
-        }).unwrap();
-        let result = self.ci.run_pipeline(&project_id);
-        match result {
-            Ok(result) => {
-                term::info!("[{}] CI pipeline job completed successfully with status {:?} and message: {:?}", self.id, result.status, result.message);
-            }
-            Err(error) => {
-                term::info!("[{}] CI pipeline job encountered an error: {:?}", self.id, error);
-            }
-        }
+        let repository = profile.storage.repository(rid).unwrap();
+        let mut patches = Patches::open(&repository).unwrap();
+        // TODO: Correctly handle getting a patch that doesn't exist
+        let mut patch = patches.get_mut(&patch_id.parse().unwrap()).unwrap();
+        let repository_id = repository.id.canonical();
+
+        let ci_job = CIJob {
+            project_name: repository_id.clone(),
+            patch_branch: patch.id.to_string(),
+            patch_head: patch.head().to_string(),
+            project_id: repository_id.clone(),
+            git_uri: format!("https://seed.radicle.xyz/{repository_id}.git"),
+        };
+
+        self.ci.setup(ci_job)
+            .and_then(|_| self.ci.run_pipeline(&repository_id))
+            .map(|ci_result| {
+                let signer = profile.signer().unwrap();
+                let (revision_id, _) = patch.revisions().last().unwrap();
+                patch.thread(*revision_id, ci_result.get_report_message(), &signer)
+            })
+            .unwrap()
+            .map_or_else(
+                |error| term::info!("[{}] CI pipeline job encountered an error: {:?}", self.id, error),
+                |_| term::info!("[{}] CI pipeline job completed and revision comment added to patch", self.id),
+            );
     }
 }
 
