@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum CIResultStatus {
     Success,
     Failure,
@@ -7,7 +7,23 @@ pub enum CIResultStatus {
 #[derive(Debug)]
 pub struct CIResult {
     pub status: CIResultStatus,
-    pub message: Option<String>,
+    pub url: String,
+}
+
+impl CIResult {
+    pub fn has_completed_successfully(self: &Self) -> bool {
+        self.status == CIResultStatus::Success
+    }
+
+    pub fn get_report_message(self: &Self) -> String {
+        let status = if self.has_completed_successfully() {
+            "The CI job has PASSED! 🎉"
+        } else {
+            "The CI job has FAILED! 🙁"
+        };
+
+        format!("{}\n\nPlease visit {} for more details.", status, self.url)
+    }
 }
 
 #[derive(Clone, Debug)]

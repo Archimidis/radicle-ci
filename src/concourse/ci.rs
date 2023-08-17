@@ -151,13 +151,18 @@ impl CI for ConcourseCI {
                 }
             };
 
-            self.watch_pipeline_job_build(build_id).await.map(|build| {
-                term::info!("Build\n\tstatus: {:?}\n\tapi_url: {:?}", build.status, build.api_url);
-                CIResult {
-                    status: if build.has_completed_successfully() { CIResultStatus::Success } else { CIResultStatus::Failure},
-                    message: build.api_url,
-                }
-            })
+            self.watch_pipeline_job_build(build_id)
+                .await
+                .map(|build| {
+                    CIResult {
+                        status: if build.has_completed_successfully() { CIResultStatus::Success } else { CIResultStatus::Failure },
+                        url: format!("http://localhost:8080/teams/main/pipelines/{}/jobs/{}/builds/{}",
+                                     build.pipeline_name,
+                                     build.job_name,
+                                     build.name,
+                        ),
+                    }
+                })
         })
     }
 }
