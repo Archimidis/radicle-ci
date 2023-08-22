@@ -1,8 +1,9 @@
 use std::process;
 
 use radicle::profile::Profile;
-use radicle_ci::runtime::{CIConfig, Runtime};
 use radicle_term as term;
+
+use radicle_ci::runtime::{CIConfig, Runtime};
 
 fn profile() -> Result<Profile, anyhow::Error> {
     match Profile::load() {
