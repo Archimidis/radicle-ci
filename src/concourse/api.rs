@@ -200,6 +200,8 @@ jobs:
     trigger: false
   - set_pipeline: {project_id}
     file: {project_name}/.concourse/config.yaml
+    vars:
+      patch_branch: {patch_branch}
 
 resources:
 - name: {project_name}

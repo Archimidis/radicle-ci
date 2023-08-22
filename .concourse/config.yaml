@@ -1,0 +1,27 @@
+---
+resources:
+  - name: radicle-ci
+    type: git
+    icon: git
+    source:
+      uri: https://radicle.yorgos.net.gr/zBNXLtTqUu9LBZHCPFShAeXnp5Gz.git
+      branch: ((patch_branch))
+
+jobs:
+  # Update this pipeline before updating child pipelines this happens by CI broker
+  - name: set-self
+    plan:
+      - get: radicle-ci
+      - set_pipeline: self
+        file: radicle-ci/.concourse/config.yaml
+        vars:
+          patch_branch: ((patch_branch))
+  - name: set-pipelines
+    plan:
+      - get: radicle-ci
+        trigger: true
+        passed: [set-self]
+      - set_pipeline: radicle-ci-tests
+        file: radicle-ci/.concourse/tests.yaml
+        vars:
+          patch_branch: ((patch_branch))

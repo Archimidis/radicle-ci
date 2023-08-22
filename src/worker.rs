@@ -50,7 +50,8 @@ impl<T: CI + Send> Worker<T> {
             patch_branch: patch.id.to_string(),
             patch_head: patch.head().to_string(),
             project_id: repository_id.clone(),
-            git_uri: format!("https://seed.radicle.xyz/{repository_id}.git"),
+            // TODO: Make this configurable per project
+            git_uri: format!("https://radicle.yorgos.net.gr/{repository_id}.git"),
         };
 
         self.ci.setup(ci_job)
