@@ -5,7 +5,8 @@ resources:
     icon: git
     source:
       uri: https://radicle.yorgos.net.gr/zBNXLtTqUu9LBZHCPFShAeXnp5Gz.git
-      branch: ((patch_branch))
+    version:
+      ref: ((patch_head))
 
 jobs:
   # Update this pipeline before updating child pipelines this happens by CI broker
@@ -15,7 +16,7 @@ jobs:
       - set_pipeline: self
         file: radicle-ci/.concourse/config.yaml
         vars:
-          patch_branch: ((patch_branch))
+          patch_head: ((patch_head))
   - name: set-pipelines
     plan:
       - get: radicle-ci
@@ -24,4 +25,4 @@ jobs:
       - set_pipeline: radicle-ci-tests
         file: radicle-ci/.concourse/tests.yaml
         vars:
-          patch_branch: ((patch_branch))
+          patch_head: ((patch_head))

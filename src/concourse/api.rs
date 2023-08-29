@@ -189,6 +189,7 @@ impl ConcourseAPI {
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
         };
 
+        // TODO: remove patch_branch from CI trait
         let CIJob { project_name, patch_branch, patch_head, project_id, git_uri } = job;
 
         let body = format!(r#"
@@ -201,7 +202,7 @@ jobs:
   - set_pipeline: {project_id}
     file: {project_name}/.concourse/config.yaml
     vars:
-      patch_branch: {patch_branch}
+      patch_head: {patch_head}
 
 resources:
 - name: {project_name}
@@ -209,7 +210,8 @@ resources:
   icon: git
   source:
     uri: {git_uri}
-    branch: {patch_branch}
+  version:
+    ref: {patch_head}
         "#);
 
         let request = Request::builder()

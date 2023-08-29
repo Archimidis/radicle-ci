@@ -6,7 +6,8 @@ resources:
   type: git
   source:
     uri: https://radicle.yorgos.net.gr/zBNXLtTqUu9LBZHCPFShAeXnp5Gz.git
-    branch: ((patch_branch))
+  version:
+    ref: ((patch_head))
 
 jobs:
 - name: cargo-test-job
