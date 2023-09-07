@@ -1,28 +1,52 @@
----
-resources:
-  - name: radicle-ci
-    type: git
-    icon: git
-    source:
-      uri: https://radicle.yorgos.net.gr/zBNXLtTqUu9LBZHCPFShAeXnp5Gz.git
-    version:
-      ref: ((patch_head))
-
 jobs:
-  # Update this pipeline before updating child pipelines this happens by CI broker
-  - name: set-self
+  - name: pipeline-configure
     plan:
-      - get: radicle-ci
-      - set_pipeline: self
-        file: radicle-ci/.concourse/config.yaml
-        vars:
-          patch_head: ((patch_head))
-  - name: set-pipelines
-    plan:
-      - get: radicle-ci
-        trigger: true
-        passed: [set-self]
-      - set_pipeline: radicle-ci-tests
-        file: radicle-ci/.concourse/tests.yaml
-        vars:
-          patch_head: ((patch_head))
+
+      - task: get-code
+        config:
+          outputs:
+            - name: repo
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: alpine/git
+          run:
+            user: root
+            entrypoint: ""
+            path: /bin/sh
+            args:
+              - -c
+              - |
+                git clone ((repo_url)) repo
+                cd repo
+                git fetch origin ((patch_revision_id))
+                git fetch origin ((patch_head))
+                git checkout FETCH_HEAD
+                ls -al .concourse
+
+      - task: test-all
+        config:
+          platform: linux
+          image_resource:
+            type: registry-image
+            source:
+              repository: quay.io/gsaslis/rust-git-builder # built from https://github.com/gsaslis/rust-git-builder/blob/main/Dockerfile
+              tag: latest
+          inputs:
+            - name: repo
+          outputs:
+            - name: output.txt
+          run:
+            dir: repo
+            path: /bin/bash
+            args:
+              - -c
+              - |
+                git --version
+                . "$HOME/.cargo/env"
+                cargo --version
+                
+                # run tests
+                # RUST_BACKTRACE=1 cargo test --all | tee output.txt
+                ls -al

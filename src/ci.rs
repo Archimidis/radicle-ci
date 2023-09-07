@@ -28,8 +28,7 @@ impl CIResult {
 
 #[derive(Clone, Debug)]
 pub struct CIJob {
-    pub project_name: String,
-    pub patch_branch: String,
+    pub patch_revision_id: String,
     pub patch_head: String,
     pub project_id: String,
     pub git_uri: String,

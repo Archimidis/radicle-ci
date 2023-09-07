@@ -15,6 +15,9 @@ use crate::concourse::token::Token;
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
+pub type PipelineConfig = String;
+pub type PipelineName = String;
+
 async fn deserialize_json_response<T>(response: Response<Body>) -> Result<T>
     where
         T: for<'de> Deserialize<'de>,
@@ -174,53 +177,20 @@ impl ConcourseAPI {
         }
     }
 
-    /// Create a new pipeline in concourse that will read pipelines from the git repository.
-    /// Some things to know about the configuration being sent to concourse:
-    /// 1. The `trigger` property is set to false because we don't want concourse to trigger jobs
-    ///    that the radicle-ci won't know about
-    /// 2. The project id is passed as value to the `set_pipeline property. This creates a new
-    ///    pipeline and sets its config to that of the file discovered in the git resource.
-    /// 3. By convention, we'll require the initial concourse pipeline to be in the file
-    ///    `.concourse/config.yaml`. The git repository that we want to execute a pipeline for is
-    ///    expected to have this file.
-    pub async fn create_pipeline(&self, job: &CIJob) -> Result<()> {
+    /// Create a new pipeline in concourse based on the configuration provided.
+    pub async fn create_pipeline(&self, pipeline_name: PipelineName, config: PipelineConfig) -> Result<()> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
         };
 
-        // TODO: remove patch_branch from CI trait
-        let CIJob { project_name, patch_branch, patch_head, project_id, git_uri } = job;
-
-        let body = format!(r#"
-jobs:
-- name: configure-pipeline
-  plan:
-  - get: {project_name}
-    version: {patch_head}
-    trigger: false
-  - set_pipeline: {project_id}
-    file: {project_name}/.concourse/config.yaml
-    vars:
-      patch_head: {patch_head}
-
-resources:
-- name: {project_name}
-  type: git
-  icon: git
-  source:
-    uri: {git_uri}
-  version:
-    ref: {patch_head}
-        "#);
-
         let request = Request::builder()
             .method("PUT")
-            .uri(format!("{}/api/v1/teams/main/pipelines/{}-configure/config", self.concourse_uri, project_id))
+            .uri(format!("{}/api/v1/teams/main/pipelines/{}/config", self.concourse_uri, pipeline_name))
             .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .header(CONTENT_TYPE, "application/x-yaml")
             .header("X-Concourse-Config-Version", "1")
-            .body(body.into())?;
+            .body(config.into())?;
 
         let response = self.client.request(request).await?;
         let status = response.status();
