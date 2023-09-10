@@ -1,3 +1,8 @@
+pub type PipelineConfig = String;
+pub type PipelineName = String;
+pub type JobName = String;
+pub type BuildName = String;
+
 #[derive(Debug, PartialEq)]
 pub enum CIResultStatus {
     Success,
@@ -36,5 +41,5 @@ pub struct CIJob {
 
 pub trait CI: Clone {
     fn setup(&mut self, job: CIJob) -> Result<(), anyhow::Error>;
-    fn run_pipeline(&self, project_id: &String) -> Result<CIResult, anyhow::Error>;
+    fn run_pipeline(&self, pipeline_name: &PipelineName) -> Result<CIResult, anyhow::Error>;
 }

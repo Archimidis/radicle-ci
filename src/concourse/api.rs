@@ -6,7 +6,7 @@ use hyper::client::HttpConnector;
 use hyper::header::{AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE};
 use serde::Deserialize;
 
-use crate::ci::CIJob;
+use crate::ci::{BuildName, JobName, PipelineConfig, PipelineName};
 use crate::concourse::build::{Build, BuildID};
 use crate::concourse::pipeline::Pipeline;
 use crate::concourse::pipeline_job::PipelineJob;
@@ -15,10 +15,6 @@ use crate::concourse::token::Token;
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
-pub type PipelineConfig = String;
-pub type PipelineName = String;
-pub type JobName = String;
-pub type BuildName = String;
 
 async fn deserialize_json_response<T>(response: Response<Body>) -> Result<T>
     where

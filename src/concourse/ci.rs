@@ -1,15 +1,12 @@
 use tokio::fs::File;
 use std::time::Duration;
 use std::str;
-use std::str::Utf8Error;
-use anyhow::anyhow;
-
 use radicle_term as term;
 use tokio::time::sleep;
 use tokio::io::{AsyncReadExt};
 
-use crate::ci::{CI, CIJob, CIResult, CIResultStatus};
-use crate::concourse::api::{ConcourseAPI, PipelineConfig, PipelineName};
+use crate::ci::{CI, CIJob, CIResult, CIResultStatus, PipelineConfig, PipelineName};
+use crate::concourse::api::ConcourseAPI;
 use crate::concourse::build::{Build, BuildID};
 use crate::concourse::pipeline_job::PipelineJob;
 
