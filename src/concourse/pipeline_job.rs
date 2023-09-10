@@ -1,5 +1,6 @@
 use serde::Deserialize;
 
+use crate::ci::JobName;
 use crate::concourse::build::{Build, BuildStatus};
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -11,7 +12,7 @@ pub struct JobInputs {
 #[derive(Clone, Debug, Deserialize)]
 pub struct TriggeredJob {
     pub id: usize,
-    pub name: String,
+    pub name: JobName,
     pub team_name: String,
     pub pipeline_id: usize,
     pub pipeline_name: String,
@@ -23,7 +24,7 @@ pub struct TriggeredJob {
 #[derive(Clone, Debug, Deserialize)]
 pub struct FinishedJob {
     pub id: usize,
-    pub name: String,
+    pub name: JobName,
     pub team_name: String,
     pub pipeline_id: usize,
     pub pipeline_name: String,
@@ -35,7 +36,7 @@ pub struct FinishedJob {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Job {
     pub id: usize,
-    pub name: String,
+    pub name: JobName,
     pub team_name: String,
     pub pipeline_id: usize,
     pub pipeline_name: String,
@@ -81,7 +82,7 @@ impl PipelineJob {
         }
     }
 
-    pub fn get_name(&self) -> String {
+    pub fn get_name(&self) -> JobName {
         match self {
             PipelineJob::TriggeredJob(job) => job.name.clone(),
             PipelineJob::FinishedJob(job) => job.name.clone(),
