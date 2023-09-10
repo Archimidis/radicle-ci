@@ -17,6 +17,8 @@ pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + S
 
 pub type PipelineConfig = String;
 pub type PipelineName = String;
+pub type JobName = String;
+pub type BuildName = String;
 
 async fn deserialize_json_response<T>(response: Response<Body>) -> Result<T>
     where
@@ -153,7 +155,7 @@ impl ConcourseAPI {
         }
     }
 
-    pub async fn get_configure_pipeline(&self, project_id: &String) -> Result<Pipeline> {
+    pub async fn get_pipeline(&self, pipeline_name: &PipelineName) -> Result<Pipeline> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
@@ -161,7 +163,7 @@ impl ConcourseAPI {
 
         let request = Request::builder()
             .method("GET")
-            .uri(format!("{}/api/v1/teams/main/pipelines/{}-configure", self.concourse_uri, project_id))
+            .uri(format!("{}/api/v1/teams/main/pipelines/{}", self.concourse_uri, pipeline_name))
             .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .body("".into())?;
 
@@ -232,7 +234,7 @@ impl ConcourseAPI {
 
 
     /// Get all pipeline jobs.
-    pub async fn get_all_pipeline_jobs(&self, project_id: &String) -> Result<Vec<PipelineJob>> {
+    pub async fn get_all_pipeline_jobs(&self, pipeline_name: &PipelineName) -> Result<Vec<PipelineJob>> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
@@ -240,7 +242,7 @@ impl ConcourseAPI {
 
         let request = Request::builder()
             .method("GET")
-            .uri(format!("{}/api/v1/teams/main/pipelines/{}/jobs", self.concourse_uri, project_id))
+            .uri(format!("{}/api/v1/teams/main/pipelines/{}/jobs", self.concourse_uri, pipeline_name))
             .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .body("".into())?;
 
@@ -256,8 +258,8 @@ impl ConcourseAPI {
         }
     }
 
-    /// Trigger a new pipeline configuration job build.
-    pub async fn trigger_pipeline_configuration(&self, project_id: &String) -> Result<Build> {
+    /// Trigger a job belonging to a specific pipeline.
+    pub async fn trigger_pipeline_job(&self, pipeline_name: &PipelineName, job_name: &JobName) -> Result<Build> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
@@ -265,7 +267,7 @@ impl ConcourseAPI {
 
         let request: Request<Body> = Request::builder()
             .method("POST")
-            .uri(format!("{}/api/v1/teams/main/pipelines/{}-configure/jobs/configure-pipeline/builds", self.concourse_uri, project_id))
+            .uri(format!("{}/api/v1/teams/main/pipelines/{}/jobs/{}/builds", self.concourse_uri, pipeline_name, job_name))
             .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .body("".into())?;
 
@@ -282,7 +284,7 @@ impl ConcourseAPI {
     }
 
     /// Trigger a new build for a specific pipeline job
-    pub async fn trigger_new_pipeline_job_build(&self, project_id: &String, job_name: &String) -> Result<Build> {
+    pub async fn trigger_new_pipeline_job_build(&self, pipeline_name: &PipelineName, job_name: &JobName) -> Result<Build> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
@@ -290,7 +292,7 @@ impl ConcourseAPI {
 
         let request = Request::builder()
             .method("POST")
-            .uri(format!("{}/api/v1/teams/main/pipelines/{}/jobs/{}/builds", self.concourse_uri, project_id, job_name))
+            .uri(format!("{}/api/v1/teams/main/pipelines/{}/jobs/{}/builds", self.concourse_uri, pipeline_name, job_name))
             .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .body("".into())?;
 
@@ -308,7 +310,7 @@ impl ConcourseAPI {
 
 
     /// Returns data for a specific pipeline job build.
-    pub async fn get_pipeline_job_build(&self, pipeline_name: &String, job_name: &String, build_name: &String) -> Result<Build> {
+    pub async fn get_pipeline_job_build(&self, pipeline_name: &PipelineName, job_name: &JobName, build_name: &BuildName) -> Result<Build> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
@@ -333,7 +335,7 @@ impl ConcourseAPI {
     }
 
     /// Returns a list of all builds in concourse related to a specific pipeline job.
-    pub async fn get_all_pipeline_job_builds(&self, pipeline_name: &String, job_name: &String) -> Result<Vec<Build>> {
+    pub async fn get_all_pipeline_job_builds(&self, pipeline_name: &PipelineName, job_name: &JobName) -> Result<Vec<Build>> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
