@@ -128,14 +128,14 @@ impl CI for ConcourseCI {
             }
 
             term::info!("Creating the pipeline {}", pipeline_name);
-            let result = self.api.create_pipeline(pipeline_name, concourse_config).await;
+            let result = self.api.create_pipeline(&pipeline_name, concourse_config).await;
             match result {
                 Ok(()) => term::info!("Pipeline configuration creation triggered"),
                 Err(error) => term::info!("Failed to trigger create pipeline configuration {:?}", error),
             }
 
             term::info!("Unpausing the pipeline");
-            let result = self.api.unpause_pipeline(&job.project_id).await;
+            let result = self.api.unpause_pipeline(&pipeline_name).await;
             if let Ok(job) = result {
                 term::info!("Pipeline configuration unpaused {:?}", job);
             } else {

@@ -178,7 +178,7 @@ impl ConcourseAPI {
     }
 
     /// Create a new pipeline in concourse based on the configuration provided.
-    pub async fn create_pipeline(&self, pipeline_name: PipelineName, config: PipelineConfig) -> Result<()> {
+    pub async fn create_pipeline(&self, pipeline_name: &PipelineName, config: PipelineConfig) -> Result<()> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
@@ -206,7 +206,7 @@ impl ConcourseAPI {
 
     /// After the pipeline is created it is in a paused state. This method will unpause it making it
     /// available for execution.
-    pub async fn unpause_pipeline(&self, project_id: &String) -> Result<()> {
+    pub async fn unpause_pipeline(&self, pipeline_name: &PipelineName) -> Result<()> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
@@ -214,7 +214,7 @@ impl ConcourseAPI {
 
         let request = Request::builder()
             .method("PUT")
-            .uri(format!("{}/api/v1/teams/main/pipelines/{}-configure/unpause", self.concourse_uri, project_id))
+            .uri(format!("{}/api/v1/teams/main/pipelines/{}/unpause", self.concourse_uri, pipeline_name))
             .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .body("".into())?;
 
