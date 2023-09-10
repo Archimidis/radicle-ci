@@ -1,9 +1,11 @@
-use tokio::fs::File;
-use std::time::Duration;
 use std::str;
+use std::time::Duration;
+
+use anyhow::anyhow;
 use radicle_term as term;
+use tokio::fs::File;
+use tokio::io::AsyncReadExt;
 use tokio::time::sleep;
-use tokio::io::{AsyncReadExt};
 
 use crate::ci::{CI, CIJob, CIResult, CIResultStatus, PipelineConfig, PipelineName};
 use crate::concourse::api::ConcourseAPI;
@@ -143,87 +145,36 @@ impl CI for ConcourseCI {
         })
     }
 
-    fn run_pipeline(&self, project_id: &String) -> Result<CIResult, anyhow::Error> {
-        Ok(CIResult {
-            status: CIResultStatus::Success,
-            url: format!("http://localhost:8080/teams/main/pipelines/{}/jobs/{}/builds/{}", "pipeline_name", "job_name", "name"),
+    fn run_pipeline(&self, pipeline_name: &PipelineName) -> Result<CIResult, anyhow::Error> {
+        // TODO: watch for pipeline creation
+        self.runtime.block_on(async {
+            let result = self.api.get_all_pipeline_jobs(pipeline_name)
+                .await
+                .map(|jobs| jobs.get(0).unwrap().get_name());
+            if result.is_err() {
+                return Err(anyhow!("Cannot find jobs for {} pipeline",pipeline_name));
+            }
+
+            let job_name = result.unwrap();
+
+            let build_result = self.api.trigger_new_pipeline_job_build(pipeline_name, &job_name).await;
+            if build_result.is_err() {
+                return Err(anyhow!("Cannot trigger job {} build for {} pipeline", job_name, pipeline_name));
+            }
+            let build = build_result.unwrap();
+
+            self.watch_pipeline_job_build(build.id)
+                .await
+                .map(|build| {
+                    CIResult {
+                        status: if build.has_completed_successfully() { CIResultStatus::Success } else { CIResultStatus::Failure },
+                        url: format!("http://localhost:8080/teams/main/pipelines/{}/jobs/{}/builds/{}",
+                                     build.pipeline_name,
+                                     build.job_name,
+                                     build.name,
+                        ),
+                    }
+                })
         })
-        // self.runtime.block_on(async {
-        //     let result = self.api.trigger_pipeline_configuration(project_id).await;
-        //     if let Ok(pipeline_configuration_job) = result {
-        //         term::info!("Pipeline configuration triggered {:?}", pipeline_configuration_job);
-        //     } else {
-        //         return Err(anyhow::anyhow!("Failed to trigger pipeline configuration"));
-        //     }
-        //
-        //     let has_completed_successfully = self.watch_configure_pipeline()
-        //         .await
-        //         .map(|job| {
-        //             match job {
-        //                 PipelineJob::TriggeredJob(_) => {}
-        //                 PipelineJob::FinishedJob(j) => {}
-        //                 PipelineJob::Job(_) => {}
-        //             }
-        //         })
-        //         .map_or(false, |pipeline_job| pipeline_job.has_completed_successfully());
-        //
-        //         .map(|build| {
-        //             CIResult {
-        //                 status: if build.has_completed_successfully() { CIResultStatus::Success } else { CIResultStatus::Failure },
-        //                 url: format!("http://localhost:8080/teams/main/pipelines/{}/jobs/{}/builds/{}",
-        //                              build.pipeline_name,
-        //                              build.job_name,
-        //                              build.name,
-        //                 ),
-        //             }
-        //         })
-        //
-        //     if !has_completed_successfully {
-        //         return Err(anyhow::anyhow!("Pipeline configuration failed"));
-        //     }
-        //
-        //     let result = self.api.get_all_pipeline_jobs(&project_id).await;
-        //     match result {
-        //         Ok(jobs) => println!("All pipeline jobs: {:#?}", jobs),
-        //         Err(error) => println!("Failed to get all pipeline jobs {:#?}", error),
-        //     }
-        //
-        //     let result_job_name = self.api.get_all_pipeline_jobs(&project_id).await
-        //         .map(|jobs| jobs.get(0).unwrap().get_name());
-        //
-        //     println!("Result job name: {:#?}", result_job_name);
-        //
-        //     let build_result = match result_job_name {
-        //         // TODO: remote tests
-        //         Ok(job_name) => self.api.trigger_new_pipeline_job_build(&String::from("tests"), &job_name).await,
-        //         Err(error) => {
-        //             term::info!("Failed to get trigger new pipeline job build {:#?}", error);
-        //             return Err(anyhow::anyhow!("Failed to get trigger new pipeline job build"));
-        //         }
-        //     };
-        //
-        //     println!("Build result: {:#?}", build_result);
-        //
-        //     let build_id = match build_result {
-        //         Ok(build) => build.id,
-        //         Err(error) => {
-        //             term::info!("Failed to get pipeline job build {:#?}", error);
-        //             return Err(anyhow::anyhow!("Failed to get pipeline job build"));
-        //         }
-        //     };
-        //
-        //     self.watch_pipeline_job_build(build_id)
-        //         .await
-        //         .map(|build| {
-        //             CIResult {
-        //                 status: if build.has_completed_successfully() { CIResultStatus::Success } else { CIResultStatus::Failure },
-        //                 url: format!("http://localhost:8080/teams/main/pipelines/{}/jobs/{}/builds/{}",
-        //                              build.pipeline_name,
-        //                              build.job_name,
-        //                              build.name,
-        //                 ),
-        //             }
-        //         })
-        // })
     }
 }
