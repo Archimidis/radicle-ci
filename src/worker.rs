@@ -63,7 +63,7 @@ impl<T: CI + Send> Worker<T> {
                 let (revision_id, _) = patch.revisions().last().unwrap();
                 println!("revision_id: {:?}", revision_id);
                 println!("{}", ci_result.get_report_message());
-                patch.thread(*revision_id, ci_result.get_report_message(), &signer)
+                patch.thread(revision_id, ci_result.get_report_message(), &signer)
             })
             .map_or_else(
                 |error| term::info!("[{}] CI pipeline job encountered an error: {:?}", self.id, error),
