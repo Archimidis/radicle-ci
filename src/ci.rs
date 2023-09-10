@@ -40,6 +40,6 @@ pub struct CIJob {
 }
 
 pub trait CI: Clone {
-    fn setup(&mut self, job: CIJob) -> Result<(), anyhow::Error>;
+    fn setup(&mut self, job: CIJob) -> Result<PipelineName, anyhow::Error>;
     fn run_pipeline(&self, pipeline_name: &PipelineName) -> Result<CIResult, anyhow::Error>;
 }

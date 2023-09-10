@@ -107,7 +107,7 @@ fn create_concourse_pipeline_config(config: String, job: &CIJob) -> PipelineConf
 }
 
 impl CI for ConcourseCI {
-    fn setup(&mut self, job: CIJob) -> Result<(), anyhow::Error> {
+    fn setup(&mut self, job: CIJob) -> Result<PipelineName, anyhow::Error> {
         self.runtime.block_on(async {
             term::info!("Loading concourse configuration file");
             let concourse_config = load_concourse_config_template()
@@ -139,7 +139,7 @@ impl CI for ConcourseCI {
                 return Err(anyhow::anyhow!("Failed to unpause pipeline configuration"));
             }
 
-            Ok(())
+            Ok(pipeline_name)
         })
     }
 
