@@ -36,13 +36,17 @@ interactions and experimentation with the CI.
 Before running Radicle CI, ensure that both the Radicle node and Concourse CI are up and running. Executing `cargo run`
 from the root folder of the project is more than enough.
 
-For the time being, Radicle CI does not require any additional configuration. However, it makes the following assumptions:
+The CLI accepts the following required parameters:
 
-1. Concourse CI is running on `http://localhost:8080`.
-2. The username and password are both `test`.
-3. The repository that will be cloned to trigger a pipeline job contains a configuration file located at the following
-   path: `{project_root_folder}/.concourse/config.yaml`. For example, for the heartwood project, the path would be
-   `heartwood/.concourse/config.yaml`.
+1. `--concourse-url`: This is where Concourse runs. For example, if run locally, it will be `http://localhost:8080`.
+2. `--concourse-user`: The username used to authenticate with Concourse.
+3. `--concourse-pass`: The password used to authenticate with Concourse.
+4. `--radicle-api-url`: This is where the `radicle-httpd` runs. This will be used by Concourse to `git clone` a
+   repository.
+
+For the time being, Radicle CI makes one assumptions. The repository that will be cloned to trigger a pipeline job
+contains a configuration file located at the following path: `{project_root_folder}/.concourse/config.yaml`.
+For example, for the heartwood project, the path would be `heartwood/.concourse/config.yaml`.
 
 ## License
 
