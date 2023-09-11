@@ -17,3 +17,4 @@ radicle = { git = "https://seed.radicle.xyz/z3gqcJUoA1n9HaHKufZs5FCSGazv5.git", 
 radicle-cob = { git = "https://seed.radicle.xyz/z3gqcJUoA1n9HaHKufZs5FCSGazv5.git", version = "0" }
 radicle-term = { git = "https://seed.radicle.xyz/z3gqcJUoA1n9HaHKufZs5FCSGazv5.git", version = "0" }
 secstr = { version = "0.5.1", features = ["serde"] }
+lexopt = "0.3.0"
