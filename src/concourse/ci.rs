@@ -15,6 +15,7 @@ use crate::concourse::pipeline_job::PipelineJob;
 pub struct ConcourseCI {
     runtime: tokio::runtime::Runtime,
     api: ConcourseAPI,
+    radicle_api_url: String,
 }
 
 impl Clone for ConcourseCI {
@@ -23,17 +24,17 @@ impl Clone for ConcourseCI {
             // TODO: Investigate if this is the right way to clone a runtime
             runtime: tokio::runtime::Runtime::new().unwrap(),
             api: self.api.clone(),
+            radicle_api_url: self.radicle_api_url.clone(),
         }
     }
 }
 
 impl ConcourseCI {
-    // TODO: Create and use a CIConfig struct instead of passing individual parameters
-    pub fn new(concourse_uri: String, ci_user: String, ci_pass: String) -> Self {
+    pub fn new(radicle_api_url: String, concourse_uri: String, ci_user: String, ci_pass: String) -> Self {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let api = ConcourseAPI::new(concourse_uri, ci_user, ci_pass);
 
-        Self { runtime, api }
+        Self { runtime, api, radicle_api_url }
     }
 
     pub async fn watch_configure_pipeline(&self) -> Result<PipelineJob, anyhow::Error> {
@@ -101,12 +102,15 @@ async fn load_concourse_config_template() -> Result<String, anyhow::Error> {
         .and_then(|x| Ok(String::from(x)))
 }
 
-fn create_concourse_pipeline_config(config: String, job: &CIJob) -> PipelineConfig {
+fn create_concourse_pipeline_config(config: String, radicle_api_url: &String, job: &CIJob) -> PipelineConfig {
+    let repo_url = format!("{}/{}.git", radicle_api_url, job.project_id);
+
     config
-        .replace("((repo_url))", job.git_uri.as_str())
+        .replace("((repo_url))", repo_url.as_str())
         .replace("((patch_revision_id))", job.patch_revision_id.as_str())
         .replace("((patch_head))", job.patch_head.as_str())
 }
+
 
 impl CI for ConcourseCI {
     fn setup(&mut self, job: CIJob) -> Result<PipelineName, anyhow::Error> {
@@ -114,7 +118,7 @@ impl CI for ConcourseCI {
             term::info!("Loading concourse configuration file");
             let concourse_config = load_concourse_config_template()
                 .await
-                .map(|template| create_concourse_pipeline_config(template, &job))?;
+                .map(|template| create_concourse_pipeline_config(template, &self.radicle_api_url, &job))?;
             let pipeline_name: PipelineName = format!("{}-pipeline", job.project_id);
 
             term::info!("Getting access token");

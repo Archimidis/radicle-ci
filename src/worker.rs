@@ -50,9 +50,6 @@ impl<T: CI + Send> Worker<T> {
             patch_revision_id: revision_id.clone().to_string(),
             patch_head: patch.head().to_string(),
             project_id: repository_id.clone(),
-            // TODO: Make this configurable per project
-            git_uri: format!("http://10.5.0.101:8889/{repository_id}.git"),
-            // git_uri: format!("https://radicle.yorgos.net.gr/{repository_id}.git"),
         };
 
         term::info!("ci job: {:#?}", ci_job);
