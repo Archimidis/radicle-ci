@@ -10,7 +10,6 @@ use tokio::time::sleep;
 use crate::ci::{CI, CIJob, CIResult, CIResultStatus, PipelineConfig, PipelineName};
 use crate::concourse::api::ConcourseAPI;
 use crate::concourse::build::{Build, BuildID};
-use crate::concourse::pipeline_job::PipelineJob;
 
 pub struct ConcourseCI {
     runtime: tokio::runtime::Runtime,
@@ -21,7 +20,6 @@ pub struct ConcourseCI {
 impl Clone for ConcourseCI {
     fn clone(&self) -> Self {
         Self {
-            // TODO: Investigate if this is the right way to clone a runtime
             runtime: tokio::runtime::Runtime::new().unwrap(),
             api: self.api.clone(),
             radicle_api_url: self.radicle_api_url.clone(),
@@ -35,37 +33,6 @@ impl ConcourseCI {
         let api = ConcourseAPI::new(concourse_uri, ci_user, ci_pass);
 
         Self { runtime, api, radicle_api_url }
-    }
-
-    pub async fn watch_configure_pipeline(&self) -> Result<PipelineJob, anyhow::Error> {
-        loop {
-            sleep(Duration::from_secs(3)).await;
-
-            let result = self.api.get_all_jobs()
-                .await
-                .map(|jobs| {
-                    println!("All jobs: {:#?}", jobs);
-                    // It is safe to unwrap the result since a pipeline job will exist with the name
-                    // "configure-pipeline" for sure. This is how the concourse pipelines are
-                    // declared.
-                    let job = jobs.iter().find(|job| job.is_named(&String::from("pipeline-configure"))).unwrap();
-                    println!("Configuration pipeline job {} status: {:?}", job.get_name(), job.get_status());
-                    (*job).clone()
-                });
-
-            match result {
-                Ok(pipeline_job) => {
-                    if pipeline_job.has_completed() {
-                        term::info!("Configuration pipeline job has completed execution");
-                        break Ok(pipeline_job);
-                    }
-                }
-                Err(error) => {
-                    term::info!("Failed to get all jobs {:#?}", error);
-                    break Err(anyhow::anyhow!("Failed to get all jobs"));
-                }
-            }
-        }
     }
 
     pub async fn watch_pipeline_job_build(&self, build_id: BuildID) -> Result<Build, anyhow::Error> {
@@ -121,28 +88,21 @@ impl CI for ConcourseCI {
                 .map(|template| create_concourse_pipeline_config(template, &self.radicle_api_url, &job))?;
             let pipeline_name: PipelineName = format!("{}-pipeline", job.project_id);
 
-            term::info!("Getting access token");
             let result = self.api.get_access_token().await;
-
-            if let Ok(token) = result {
-                term::info!("Access token acquired {}", token.access_token);
-            } else {
+            if result.is_err() {
                 return Err(anyhow::anyhow!("Failed to get access token"));
             }
 
-            term::info!("Creating the pipeline {}", pipeline_name);
+            term::info!("Triggering pipeline {} creation", pipeline_name);
             let result = self.api.create_pipeline(&pipeline_name, concourse_config).await;
-            match result {
-                Ok(()) => term::info!("Pipeline configuration creation triggered"),
-                Err(error) => term::info!("Failed to trigger create pipeline configuration {:?}", error),
+            if result.is_err() {
+                term::info!("Failed to create pipeline {} {:?}", pipeline_name, result);
             }
 
-            term::info!("Unpausing the pipeline");
+            term::info!("Unpausing pipeline {}", pipeline_name);
             let result = self.api.unpause_pipeline(&pipeline_name).await;
-            if let Ok(job) = result {
-                term::info!("Pipeline configuration unpaused {:?}", job);
-            } else {
-                return Err(anyhow::anyhow!("Failed to unpause pipeline configuration"));
+            if result.is_err() {
+                return Err(anyhow::anyhow!("Failed to unpause pipeline {}", pipeline_name));
             }
 
             Ok(pipeline_name)
@@ -150,7 +110,6 @@ impl CI for ConcourseCI {
     }
 
     fn run_pipeline(&self, pipeline_name: &PipelineName) -> Result<CIResult, anyhow::Error> {
-        // TODO: watch for pipeline creation
         self.runtime.block_on(async {
             let result = self.api.get_all_pipeline_jobs(pipeline_name)
                 .await

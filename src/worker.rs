@@ -37,11 +37,8 @@ impl<T: CI + Send> Worker<T> {
     }
 
     fn process(&mut self, WorkerContext { patch_id, rid, profile }: WorkerContext) {
-        term::info!("[{}] Worker {} received job", self.id, self.id);
-
         let repository = profile.storage.repository(rid).unwrap();
         let mut patches = Patches::open(&repository).unwrap();
-        // TODO: Correctly handle getting a patch that doesn't exist
         let mut patch = patches.get_mut(&patch_id.parse().unwrap()).unwrap();
         let repository_id = repository.id.canonical();
         let (revision_id, _) = patch.revisions().last().unwrap();
@@ -52,14 +49,12 @@ impl<T: CI + Send> Worker<T> {
             project_id: repository_id.clone(),
         };
 
-        term::info!("ci job: {:#?}", ci_job);
+        term::info!("[{}] Worker received job {:#?}", self.id, ci_job);
         self.ci.setup(ci_job)
             .and_then(|pipeline_name| self.ci.run_pipeline(&pipeline_name))
             .map(|ci_result| {
                 let signer = profile.signer().unwrap();
                 let (revision_id, _) = patch.revisions().last().unwrap();
-                println!("revision_id: {:?}", revision_id);
-                println!("{}", ci_result.get_report_message());
                 patch.thread(revision_id, ci_result.get_report_message(), &signer)
             })
             .map_or_else(
