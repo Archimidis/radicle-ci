@@ -653,6 +653,8 @@ dependencies = [
  "libc",
  "libgit2-sys",
  "log",
+ "openssl-probe",
+ "openssl-sys",
  "url",
 ]
 
@@ -880,7 +882,9 @@ checksum = "a80df2e11fb4a61f4ba2ab42dbe7f74468da143f1a75c74e11dee7c813f694fa"
 dependencies = [
  "cc",
  "libc",
+ "libssh2-sys",
  "libz-sys",
+ "openssl-sys",
  "pkg-config",
 ]
 
@@ -889,6 +893,20 @@ name = "libm"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7012b1bbb0719e1097c47611d3898568c546d597c2e74d66f6087edd5233ff4"
+
+[[package]]
+name = "libssh2-sys"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2dc8a030b787e2119a731f1951d6a773e2280c660f8ec4b0f5e1505a386e71ee"
+dependencies = [
+ "cc",
+ "libc",
+ "libz-sys",
+ "openssl-sys",
+ "pkg-config",
+ "vcpkg",
+]
 
 [[package]]
 name = "libz-sys"
@@ -1072,6 +1090,24 @@ name = "opaque-debug"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "624a8340c38c1b80fd549087862da4ba43e08858af025b236e509b6649fc13d5"
+
+[[package]]
+name = "openssl-probe"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
+
+[[package]]
+name = "openssl-sys"
+version = "0.9.93"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db4d56a4c0478783083cfafcc42493dd4a981d41669da64b4572a2a089b51b1d"
+dependencies = [
+ "cc",
+ "libc",
+ "pkg-config",
+ "vcpkg",
+]
 
 [[package]]
 name = "p256"
@@ -1264,6 +1300,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "crossbeam-channel",
+ "git2",
  "hyper",
  "lexopt",
  "radicle",
