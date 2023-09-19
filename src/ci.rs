@@ -36,6 +36,7 @@ pub struct CIJob {
     pub patch_revision_id: String,
     pub patch_head: String,
     pub project_id: String,
+    pub pipeline_config: String,
 }
 
 pub trait CI: Clone {

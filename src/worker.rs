@@ -1,4 +1,6 @@
+use anyhow::anyhow;
 use crossbeam_channel::{Receiver, RecvError};
+use git2::{Oid, Repository};
 use radicle::cob::patch::Patches;
 use radicle::prelude::{Id, ReadStorage};
 use radicle::Profile;
@@ -11,6 +13,28 @@ pub struct WorkerContext {
     profile: Profile,
     rid: Id,
 }
+
+fn load_pipeline_configuration_from_commit(
+    working: &Repository,
+    commit_oid: Oid,
+) -> anyhow::Result<String> {
+    let commit = working.find_commit(commit_oid)?;
+
+    let tree = commit.tree()?;
+    let path = ".concourse/config.yaml";
+
+    if let Ok(entry) = tree.get_path(path.as_ref()) {
+        if let Ok(blob) = entry.to_object(working) {
+            if let Some(content) = blob.as_blob() {
+                let content_str = String::from_utf8_lossy(content.content());
+                return Ok(content_str.to_string());
+            }
+        }
+    }
+
+    Err(anyhow!("File {} not found in commit {:?}", path, commit_oid))
+}
+
 
 impl WorkerContext {
     pub fn new(rid: Id, patch_id: String, profile: Profile) -> Self {
@@ -43,10 +67,14 @@ impl<T: CI + Send> Worker<T> {
         let repository_id = repository.id.canonical();
         let (revision_id, _) = patch.revisions().last().unwrap();
 
+        term::info!("[{}] Loading concourse configuration file", self.id);
+        let pipeline_config = load_pipeline_configuration_from_commit(&repository.backend, **patch.head()).unwrap();
+
         let ci_job = CIJob {
             patch_revision_id: revision_id.clone().to_string(),
             patch_head: patch.head().to_string(),
             project_id: repository_id.clone(),
+            pipeline_config,
         };
 
         term::info!("[{}] Worker received job {:#?}", self.id, ci_job);

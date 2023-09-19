@@ -1,10 +1,7 @@
-use std::str;
 use std::time::Duration;
 
 use anyhow::anyhow;
 use radicle_term as term;
-use tokio::fs::File;
-use tokio::io::AsyncReadExt;
 use tokio::time::sleep;
 
 use crate::ci::{CI, CIJob, CIResult, CIResultStatus, PipelineConfig, PipelineName};
@@ -58,36 +55,19 @@ impl ConcourseCI {
     }
 }
 
-async fn load_concourse_config_template() -> Result<String, anyhow::Error> {
-    let path = ".concourse/config.yaml";
-    let mut file = File::open(path)
-        .await
-        .map_err(|_| anyhow::anyhow!("Unable to open file {path}"))?;
-    let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer).await?;
-
-    str::from_utf8(&buffer)
-        .map_err(|_| anyhow::anyhow!("Error parsing file"))
-        .and_then(|x| Ok(String::from(x)))
-}
-
-fn create_concourse_pipeline_config(config: String, radicle_api_url: &String, job: &CIJob) -> PipelineConfig {
+fn create_concourse_pipeline_config(radicle_api_url: &String, job: &CIJob) -> PipelineConfig {
     let repo_url = format!("{}/{}.git", radicle_api_url, job.project_id);
 
-    config
+    job.pipeline_config
         .replace("((repo_url))", repo_url.as_str())
         .replace("((patch_revision_id))", job.patch_revision_id.as_str())
         .replace("((patch_head))", job.patch_head.as_str())
 }
 
-
 impl CI for ConcourseCI {
     fn setup(&mut self, job: CIJob) -> Result<PipelineName, anyhow::Error> {
         self.runtime.block_on(async {
-            term::info!("Loading concourse configuration file");
-            let concourse_config = load_concourse_config_template()
-                .await
-                .map(|template| create_concourse_pipeline_config(template, &self.radicle_api_url, &job))?;
+            let concourse_config = create_concourse_pipeline_config(&self.radicle_api_url, &job);
             let pipeline_name: PipelineName = format!("{}-pipeline", job.project_id);
 
             let result = self.api.get_access_token().await;
