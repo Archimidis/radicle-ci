@@ -15,6 +15,7 @@ pub struct ConcourseCI {
     runtime: tokio::runtime::Runtime,
     api: ConcourseAPI,
     radicle_api_url: String,
+    concourse_url: String,
 }
 
 impl Clone for ConcourseCI {
@@ -23,16 +24,17 @@ impl Clone for ConcourseCI {
             runtime: tokio::runtime::Runtime::new().unwrap(),
             api: self.api.clone(),
             radicle_api_url: self.radicle_api_url.clone(),
+            concourse_url: self.concourse_url.clone(),
         }
     }
 }
 
 impl ConcourseCI {
-    pub fn new(radicle_api_url: String, concourse_uri: String, ci_user: String, ci_pass: String) -> Self {
+    pub fn new(radicle_api_url: String, concourse_url: String, ci_user: String, ci_pass: String) -> Self {
         let runtime = tokio::runtime::Runtime::new().unwrap();
-        let api = ConcourseAPI::new(concourse_uri, ci_user, ci_pass);
+        let api = ConcourseAPI::new(concourse_url.clone(), ci_user, ci_pass);
 
-        Self { runtime, api, radicle_api_url }
+        Self { runtime, api, concourse_url, radicle_api_url }
     }
 
     pub async fn watch_pipeline_job_build(&self, build_id: BuildID) -> Result<Build, anyhow::Error> {
@@ -126,12 +128,14 @@ impl CI for ConcourseCI {
             }
             let build = build_result.unwrap();
 
+
             self.watch_pipeline_job_build(build.id)
                 .await
                 .map(|build| {
                     CIResult {
                         status: if build.has_completed_successfully() { CIResultStatus::Success } else { CIResultStatus::Failure },
-                        url: format!("http://localhost:8080/teams/main/pipelines/{}/jobs/{}/builds/{}",
+                        url: format!("{}/teams/main/pipelines/{}/jobs/{}/builds/{}",
+                                     self.concourse_url,
                                      build.pipeline_name,
                                      build.job_name,
                                      build.name,
