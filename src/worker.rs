@@ -77,13 +77,23 @@ impl<T: CI + Send> Worker<T> {
             pipeline_config,
         };
 
+
+        let signer = profile.signer().unwrap();
+        let (revision_id, _) = patch.revisions().last().unwrap();
+        patch.comment(revision_id, "New CI build is starting", None, &signer)
+            .map_or_else(
+                |error| term::info!("[{}] Unable to create a patch comment {:?}", self.id, error),
+                |_| term::info!("[{}] New CI build patch comment created", self.id),
+            );
+
         term::info!("[{}] Worker received job {:#?}", self.id, ci_job);
         self.ci.setup(ci_job)
             .and_then(|pipeline_name| self.ci.run_pipeline(&pipeline_name))
             .map(|ci_result| {
                 let signer = profile.signer().unwrap();
                 let (revision_id, _) = patch.revisions().last().unwrap();
-                patch.thread(revision_id, ci_result.get_report_message(), &signer)
+                term::info!("[{}] Pipeline result: {}", self.id, ci_result.get_report_message());
+                patch.comment(revision_id, ci_result.get_report_message(), None, &signer)
             })
             .map_or_else(
                 |error| term::info!("[{}] CI pipeline job encountered an error: {:?}", self.id, error),
