@@ -3,6 +3,7 @@ use std::io::Read;
 use hyper::{Body, Client, Request, Response};
 use hyper::body::Buf;
 use hyper::client::HttpConnector;
+use hyper_tls::HttpsConnector;
 use hyper::header::{AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE};
 use serde::Deserialize;
 
@@ -36,7 +37,7 @@ async fn deserialize_string_response(response: Response<Body>) -> Result<String>
 
 #[derive(Clone)]
 pub struct ConcourseAPI {
-    client: Client<HttpConnector>,
+    client: Client<HttpsConnector<HttpConnector>>,
     ci_pass: String,
     ci_user: String,
     concourse_uri: String,
@@ -45,8 +46,10 @@ pub struct ConcourseAPI {
 
 impl ConcourseAPI {
     pub fn new(concourse_uri: String, ci_user: String, ci_pass: String) -> ConcourseAPI {
+        let https = HttpsConnector::new();
+        let client = Client::builder().build::<_, hyper::Body>(https);
         ConcourseAPI {
-            client: Client::new(),
+            client,
             concourse_uri,
             ci_user,
             ci_pass,
