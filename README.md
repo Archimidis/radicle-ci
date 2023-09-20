@@ -1,14 +1,12 @@
-# Radicle CI
+# Radicle CI Broker
 
-This project is a proof of concept for a CI system for Radicle projects. It is currently in a very early stage of
-development and, for the time being, is using [Concourse CI](https://concourse-ci.org/) for scheduling and executing CI
-pipelines.
+This project is a proof of concept for a CI broker that can be used to integrate Radicle projects with external CI systems. It is currently in a very early stage of development and, for the time being, only supports [Concourse CI](https://concourse-ci.org/) for scheduling and executing CI pipelines.
 
-Radicle CI subscribes to node events and is specifically interested in `radicle::node::Event::RefsFetched` events.
-It looks for `RefUpdate::Updated` and `RefUpdate::Updated` references related to patches. It will then trigger a
-pipeline job for each patch that was updated or created. The pipeline job will clone the repository, checkout the patch,
-and execute whatever is declared in the `{project_root_folder}/.concourse/config.yaml` file. This configuration file
-contains a description of pipelines and tasks that Concourse CI will execute.
+The Radicle CI Broker  subscribes to node events and is specifically interested in `radicle::node::Event::RefsFetched` events. It looks for `RefUpdate::Updated` and `RefUpdate::Updated` references related to patches. 
+
+It will then trigger a pipeline job for each patch that was updated or created. The pipeline job will clone the repository, checkout the patch, and execute whatever is declared in the `{project_root_folder}/.concourse/config.yaml` file. This configuration file contains a description of pipelines and tasks that Concourse CI will execute.
+
+Please also take a look at the [architecture.md](architecture.md) for a broader overview.
 
 ## Installation
 
@@ -33,8 +31,7 @@ interactions and experimentation with the CI.
 
 ## Running
 
-Before running Radicle CI, ensure that both the Radicle node and Concourse CI are up and running. Executing `cargo run`
-from the root folder of the project is more than enough.
+Before running Radicle CI Broker, ensure that both the Radicle node and Concourse CI are up and running. Executing `cargo run` from the root folder of the project is more than enough.
 
 The CLI accepts the following required parameters:
 
@@ -44,12 +41,11 @@ The CLI accepts the following required parameters:
 4. `--radicle-api-url`: This is where the `radicle-httpd` runs. This will be used by Concourse to `git clone` a
    repository.
 
-For the time being, Radicle CI makes one assumptions. The repository that will be cloned to trigger a pipeline job
+For the time being, Radicle CI makes one assumption. The repository that will be cloned to trigger a pipeline job
 contains a configuration file located at the following path: `{project_root_folder}/.concourse/config.yaml`.
-For example, for the heartwood project, the path would be `heartwood/.concourse/config.yaml`.
 
 ## License
 
-Radicle is distributed under the terms of both the MIT license and the Apache License (Version 2.0).
+Radicle CI Broker is distributed under the terms of both the MIT license and the Apache License (Version 2.0).
 
 See [LICENSE-APACHE](LICENSE-APACHE) and [LICENSE-MIT](LICENSE-MIT) for details.
