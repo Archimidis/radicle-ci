@@ -46,7 +46,8 @@ jobs:
                 git --version
                 . "$HOME/.cargo/env"
                 cargo --version
-                
-                # run tests
-                # RUST_BACKTRACE=1 cargo test --all | tee output.txt
+
                 ls -al
+
+                # run tests
+                RUST_BACKTRACE=1 cargo test --all | tee output.txt
