@@ -75,8 +75,14 @@ impl CI for ConcourseCI {
                 return Err(anyhow::anyhow!("Failed to get access token"));
             }
 
-            term::info!("Triggering pipeline {} creation", pipeline_name);
-            let result = self.api.create_pipeline(&pipeline_name, concourse_config).await;
+            let result = self.api.get_pipeline_config(&pipeline_name).await;
+            let config_version = match result {
+                Ok(config) => config.version,
+                Err(_) => None,
+            };
+
+            term::info!("Triggering pipeline {} creation with current version {:?}", pipeline_name, config_version);
+            let result = self.api.create_pipeline_config(&pipeline_name, concourse_config, config_version).await;
             if result.is_err() {
                 term::info!("Failed to create pipeline {} {:?}", pipeline_name, result);
             }

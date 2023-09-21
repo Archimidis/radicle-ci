@@ -3,13 +3,14 @@ use std::io::Read;
 use hyper::{Body, Client, Request, Response};
 use hyper::body::Buf;
 use hyper::client::HttpConnector;
-use hyper_tls::HttpsConnector;
 use hyper::header::{AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE};
+use hyper_tls::HttpsConnector;
 use serde::Deserialize;
 
 use crate::ci::{BuildName, JobName, PipelineConfig, PipelineName};
 use crate::concourse::build::{Build, BuildID};
 use crate::concourse::pipeline::Pipeline;
+use crate::concourse::pipeline_configuration::PipelineConfiguration;
 use crate::concourse::pipeline_job::PipelineJob;
 use crate::concourse::response_error::ResponseError;
 use crate::concourse::token::Token;
@@ -178,11 +179,50 @@ impl ConcourseAPI {
         }
     }
 
-    /// Create a new pipeline in concourse based on the configuration provided.
-    pub async fn create_pipeline(&self, pipeline_name: &PipelineName, config: PipelineConfig) -> Result<()> {
+    pub async fn get_pipeline_config(&self, pipeline_name: &PipelineName) -> Result<PipelineConfiguration> {
         let access_token = match &self.token {
             Some(token) => token.get_access_token()?,
             None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+        };
+
+        let request = Request::builder()
+            .method("GET")
+            .uri(format!("{}/api/v1/teams/main/pipelines/{}/config", self.concourse_uri, pipeline_name))
+            .header(AUTHORIZATION, format!("Bearer {access_token}"))
+            .body("".into())?;
+
+        let response = self.client.request(request).await?;
+        let status = response.status();
+
+        // Both 4xx and 5xx responses return a string body that cannot be parsed as JSON.
+        if status.is_client_error() || status.is_server_error() {
+            let string = deserialize_string_response(response).await?;
+            Err(Box::new(ResponseError { errors: vec![string], warnings: None }))
+        } else {
+            let config_version = response
+                .headers()
+                .get("X-Concourse-Config-Version")
+                .map(|v| v.to_str().unwrap().to_string());
+
+            deserialize_json_response::<PipelineConfiguration>(response)
+                .await
+                .map(|mut config| {
+                    config.version = config_version;
+                    config
+                })
+        }
+    }
+
+    /// Create a new pipeline in concourse based on the configuration provided.
+    pub async fn create_pipeline_config(&self, pipeline_name: &PipelineName, config: PipelineConfig, version: Option<String>) -> Result<()> {
+        let access_token = match &self.token {
+            Some(token) => token.get_access_token()?,
+            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+        };
+
+        let config_version = match version {
+            None => String::from("1"),
+            Some(v) => v,
         };
 
         let request = Request::builder()
@@ -190,7 +230,7 @@ impl ConcourseAPI {
             .uri(format!("{}/api/v1/teams/main/pipelines/{}/config", self.concourse_uri, pipeline_name))
             .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .header(CONTENT_TYPE, "application/x-yaml")
-            .header("X-Concourse-Config-Version", "1")
+            .header("X-Concourse-Config-Version", config_version)
             .body(config.into())?;
 
         let response = self.client.request(request).await?;

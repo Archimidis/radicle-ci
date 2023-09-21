@@ -32,11 +32,12 @@ pub struct Resource {
 
 #[derive(Deserialize, Debug)]
 pub struct Config {
-    pub resources: Vec<Resource>,
+    pub resources: Option<Vec<Resource>>,
     pub jobs: Vec<PipelineJob>,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct PipelineConfiguration {
     pub config: Config,
+    pub version: Option<String>,
 }
