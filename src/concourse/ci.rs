@@ -34,7 +34,7 @@ impl ConcourseCI {
         Self { runtime, api, concourse_url, radicle_api_url }
     }
 
-    pub async fn watch_pipeline_job_build(&self, build_id: BuildID) -> Result<Build, anyhow::Error> {
+    pub async fn watch_pipeline_job_build(&mut self, build_id: BuildID) -> Result<Build, anyhow::Error> {
         loop {
             sleep(Duration::from_secs(3)).await;
 
@@ -97,8 +97,9 @@ impl CI for ConcourseCI {
         })
     }
 
-    fn run_pipeline(&self, pipeline_name: &PipelineName) -> Result<CIResult, anyhow::Error> {
+    fn run_pipeline(&mut self, pipeline_name: &PipelineName) -> Result<CIResult, anyhow::Error> {
         self.runtime.block_on(async {
+            let concourse_url = &self.concourse_url.clone();
             let result = self.api.get_all_pipeline_jobs(pipeline_name)
                 .await
                 .map(|jobs| jobs.get(0).unwrap().get_name());
@@ -115,19 +116,34 @@ impl CI for ConcourseCI {
             let build = build_result.unwrap();
 
 
-            self.watch_pipeline_job_build(build.id)
-                .await
-                .map(|build| {
-                    CIResult {
-                        status: if build.has_completed_successfully() { CIResultStatus::Success } else { CIResultStatus::Failure },
-                        url: format!("{}/teams/main/pipelines/{}/jobs/{}/builds/{}",
-                                     self.concourse_url,
-                                     build.pipeline_name,
-                                     build.job_name,
-                                     build.name,
-                        ),
+            let watch_build_result = loop {
+                sleep(Duration::from_secs(3)).await;
+                let build_result = self.api.get_build(&build.id).await;
+                match build_result {
+                    Ok(build) => {
+                        if build.has_completed() {
+                            term::info!("Pipeline job build #{} has completed execution", build.id);
+                            break Ok(build);
+                        }
                     }
-                })
+                    Err(error) => {
+                        term::info!("Failed to get pipeline job build {:#?}", error);
+                        break Err(anyhow::anyhow!("Failed to get pipeline job build"));
+                    }
+                }
+            };
+
+            watch_build_result.map(|build| {
+                CIResult {
+                    status: if build.has_completed_successfully() { CIResultStatus::Success } else { CIResultStatus::Failure },
+                    url: format!("{}/teams/main/pipelines/{}/jobs/{}/builds/{}",
+                                 concourse_url,
+                                 build.pipeline_name,
+                                 build.job_name,
+                                 build.name,
+                    ),
+                }
+            })
         })
     }
 }

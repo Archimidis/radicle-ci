@@ -80,10 +80,10 @@ impl ConcourseAPI {
     }
 
     /// Returns a list of all pipelines.
-    pub async fn get_all_pipelines(&self) -> Result<Vec<Pipeline>> {
-        let access_token = match &self.token {
-            Some(token) => token.get_access_token()?,
-            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+    pub async fn get_all_pipelines(&mut self) -> Result<Vec<Pipeline>> {
+        let access_token = match self.acquire_access_token().await {
+            Ok(token) => token.get_access_token()?,
+            Err(_) => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None })),
         };
 
         let request = Request::builder()
@@ -105,10 +105,10 @@ impl ConcourseAPI {
     }
 
     /// Returns a list of all pipeline jobs.
-    pub async fn get_all_jobs(&self) -> Result<Vec<PipelineJob>> {
-        let access_token = match &self.token {
-            Some(token) => token.get_access_token()?,
-            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+    pub async fn get_all_jobs(&mut self) -> Result<Vec<PipelineJob>> {
+        let access_token = match self.acquire_access_token().await {
+            Ok(token) => token.get_access_token()?,
+            Err(_) => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None })),
         };
 
         let request = Request::builder()
@@ -131,10 +131,10 @@ impl ConcourseAPI {
     }
 
     /// Returns a specific pipeline job build.
-    pub async fn get_build(&self, build_id: &BuildID) -> Result<Build> {
-        let access_token = match &self.token {
-            Some(token) => token.get_access_token()?,
-            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+    pub async fn get_build(&mut self, build_id: &BuildID) -> Result<Build> {
+        let access_token = match self.acquire_access_token().await {
+            Ok(token) => token.get_access_token()?,
+            Err(_) => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None })),
         };
 
         let request: Request<Body> = Request::builder()
@@ -155,10 +155,10 @@ impl ConcourseAPI {
         }
     }
 
-    pub async fn get_pipeline(&self, pipeline_name: &PipelineName) -> Result<Pipeline> {
-        let access_token = match &self.token {
-            Some(token) => token.get_access_token()?,
-            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+    pub async fn get_pipeline(&mut self, pipeline_name: &PipelineName) -> Result<Pipeline> {
+        let access_token = match self.acquire_access_token().await {
+            Ok(token) => token.get_access_token()?,
+            Err(_) => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None })),
         };
 
         let request = Request::builder()
@@ -179,10 +179,10 @@ impl ConcourseAPI {
         }
     }
 
-    pub async fn get_pipeline_config(&self, pipeline_name: &PipelineName) -> Result<PipelineConfiguration> {
-        let access_token = match &self.token {
-            Some(token) => token.get_access_token()?,
-            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+    pub async fn get_pipeline_config(&mut self, pipeline_name: &PipelineName) -> Result<PipelineConfiguration> {
+        let access_token = match self.acquire_access_token().await {
+            Ok(token) => token.get_access_token()?,
+            Err(_) => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None })),
         };
 
         let request = Request::builder()
@@ -214,10 +214,10 @@ impl ConcourseAPI {
     }
 
     /// Create a new pipeline in concourse based on the configuration provided.
-    pub async fn create_pipeline_config(&self, pipeline_name: &PipelineName, config: PipelineConfig, version: Option<String>) -> Result<()> {
-        let access_token = match &self.token {
-            Some(token) => token.get_access_token()?,
-            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+    pub async fn create_pipeline_config(&mut self, pipeline_name: &PipelineName, config: PipelineConfig, version: Option<String>) -> Result<()> {
+        let access_token = match self.acquire_access_token().await {
+            Ok(token) => token.get_access_token()?,
+            Err(_) => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None })),
         };
 
         let config_version = match version {
@@ -247,10 +247,10 @@ impl ConcourseAPI {
 
     /// After the pipeline is created it is in a paused state. This method will unpause it making it
     /// available for execution.
-    pub async fn unpause_pipeline(&self, pipeline_name: &PipelineName) -> Result<()> {
-        let access_token = match &self.token {
-            Some(token) => token.get_access_token()?,
-            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+    pub async fn unpause_pipeline(&mut self, pipeline_name: &PipelineName) -> Result<()> {
+        let access_token = match self.acquire_access_token().await {
+            Ok(token) => token.get_access_token()?,
+            Err(_) => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None })),
         };
 
         let request = Request::builder()
@@ -273,10 +273,10 @@ impl ConcourseAPI {
 
 
     /// Get all pipeline jobs.
-    pub async fn get_all_pipeline_jobs(&self, pipeline_name: &PipelineName) -> Result<Vec<PipelineJob>> {
-        let access_token = match &self.token {
-            Some(token) => token.get_access_token()?,
-            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+    pub async fn get_all_pipeline_jobs(&mut self, pipeline_name: &PipelineName) -> Result<Vec<PipelineJob>> {
+        let access_token = match self.acquire_access_token().await {
+            Ok(token) => token.get_access_token()?,
+            Err(_) => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None })),
         };
 
         let request = Request::builder()
@@ -298,10 +298,10 @@ impl ConcourseAPI {
     }
 
     /// Trigger a job belonging to a specific pipeline.
-    pub async fn trigger_pipeline_job(&self, pipeline_name: &PipelineName, job_name: &JobName) -> Result<Build> {
-        let access_token = match &self.token {
-            Some(token) => token.get_access_token()?,
-            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+    pub async fn trigger_pipeline_job(&mut self, pipeline_name: &PipelineName, job_name: &JobName) -> Result<Build> {
+        let access_token = match self.acquire_access_token().await {
+            Ok(token) => token.get_access_token()?,
+            Err(_) => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None })),
         };
 
         let request: Request<Body> = Request::builder()
@@ -323,10 +323,10 @@ impl ConcourseAPI {
     }
 
     /// Trigger a new build for a specific pipeline job
-    pub async fn trigger_new_pipeline_job_build(&self, pipeline_name: &PipelineName, job_name: &JobName) -> Result<Build> {
-        let access_token = match &self.token {
-            Some(token) => token.get_access_token()?,
-            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+    pub async fn trigger_new_pipeline_job_build(&mut self, pipeline_name: &PipelineName, job_name: &JobName) -> Result<Build> {
+        let access_token = match self.acquire_access_token().await {
+            Ok(token) => token.get_access_token()?,
+            Err(_) => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None })),
         };
 
         let request = Request::builder()
@@ -349,10 +349,10 @@ impl ConcourseAPI {
 
 
     /// Returns data for a specific pipeline job build.
-    pub async fn get_pipeline_job_build(&self, pipeline_name: &PipelineName, job_name: &JobName, build_name: &BuildName) -> Result<Build> {
-        let access_token = match &self.token {
-            Some(token) => token.get_access_token()?,
-            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+    pub async fn get_pipeline_job_build(&mut self, pipeline_name: &PipelineName, job_name: &JobName, build_name: &BuildName) -> Result<Build> {
+        let access_token = match self.acquire_access_token().await {
+            Ok(token) => token.get_access_token()?,
+            Err(_) => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None })),
         };
 
         let request = Request::builder()
@@ -374,10 +374,10 @@ impl ConcourseAPI {
     }
 
     /// Returns a list of all builds in concourse related to a specific pipeline job.
-    pub async fn get_all_pipeline_job_builds(&self, pipeline_name: &PipelineName, job_name: &JobName) -> Result<Vec<Build>> {
-        let access_token = match &self.token {
-            Some(token) => token.get_access_token()?,
-            None => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None }))
+    pub async fn get_all_pipeline_job_builds(&mut self, pipeline_name: &PipelineName, job_name: &JobName) -> Result<Vec<Build>> {
+        let access_token = match self.acquire_access_token().await {
+            Ok(token) => token.get_access_token()?,
+            Err(_) => return Err(Box::new(ResponseError { errors: vec!["No access token acquired yet.".into()], warnings: None })),
         };
 
         let request = Request::builder()
@@ -396,5 +396,11 @@ impl ConcourseAPI {
             let result = deserialize_json_response::<Vec<Build>>(response).await?;
             Ok(result)
         }
+    }
+
+    async fn acquire_access_token(&mut self) -> Result<Token> {
+        if self.token.is_none() || self.token.as_ref().is_some_and(|token| token.has_expired()) {
+            self.get_access_token().await
+        } else { Ok(self.token.clone().unwrap()) }
     }
 }
