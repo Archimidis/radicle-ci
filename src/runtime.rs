@@ -45,7 +45,7 @@ impl Runtime {
         Ok(())
     }
 
-    fn subscribe_to_node_events(self: &Self, profile: Profile, sender: Sender<WorkerContext>) -> anyhow::Result<()> {
+    fn subscribe_to_node_events(&self, profile: Profile, sender: Sender<WorkerContext>) -> anyhow::Result<()> {
         term::info!("Subscribing to node events ...");
         let node = radicle::Node::new(profile.socket());
         let events = node.subscribe(time::Duration::MAX)?;
@@ -54,23 +54,21 @@ impl Runtime {
             let event = event?;
 
             term::info!("Received event {:?}", event);
-            match event {
-                Event::RefsFetched { remote: _, rid, updated } => {
-                    for refs in updated {
-                        match refs {
-                            RefUpdate::Updated { name, .. } | RefUpdate::Created { name, .. } => {
-                                term::info!("Update reference announcement received: {name}");
-                                if name.contains("xyz.radicle.patch") {
-                                    let patch_id = name.split('/').last().unwrap();
-                                    // TODO: Handle channel send error
-                                    let _ = sender.send(WorkerContext::new(rid, String::from(patch_id), profile.clone()));
-                                }
+
+            if let Event::RefsFetched { remote: _, rid, updated } = event {
+                for refs in updated {
+                    match refs {
+                        RefUpdate::Updated { name, .. } | RefUpdate::Created { name, .. } => {
+                            term::info!("Update reference announcement received: {name}");
+                            if name.contains("xyz.radicle.patch") {
+                                let patch_id = name.split('/').last().unwrap();
+                                // TODO: Handle channel send error
+                                let _ = sender.send(WorkerContext::new(rid, String::from(patch_id), profile.clone()));
                             }
-                            _ => (),
                         }
+                        _ => (),
                     }
                 }
-                _ => (),
             }
         }
         Ok(())

@@ -45,9 +45,9 @@ pub struct Job {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
 pub enum PipelineJob {
-    TriggeredJob(TriggeredJob),
-    FinishedJob(FinishedJob),
-    Job(Job),
+    TriggeredJob(Box<TriggeredJob>),
+    FinishedJob(Box<FinishedJob>),
+    Job(Box<Job>),
 }
 
 impl PipelineJob {

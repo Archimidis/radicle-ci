@@ -16,11 +16,11 @@ pub struct CIResult {
 }
 
 impl CIResult {
-    pub fn has_completed_successfully(self: &Self) -> bool {
+    pub fn has_completed_successfully(&self) -> bool {
         self.status == CIResultStatus::Success
     }
 
-    pub fn get_report_message(self: &Self) -> String {
+    pub fn get_report_message(&self) -> String {
         let status = if self.has_completed_successfully() {
             "The CI job has PASSED! 🎉"
         } else {

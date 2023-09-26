@@ -49,11 +49,7 @@ pub struct Build {
 
 impl Build {
     pub fn has_completed(&self) -> bool {
-        match self.status {
-            BuildStatus::Started => false,
-            BuildStatus::Pending => false,
-            _ => true,
-        }
+        !matches!(self.status, BuildStatus::Started | BuildStatus::Pending)
     }
 
     pub fn has_completed_successfully(&self) -> bool {
