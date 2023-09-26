@@ -1,5 +1,6 @@
 use std::string::FromUtf8Error;
 use std::time::SystemTime;
+
 use secstr::SecStr;
 use serde::{Deserialize, Deserializer};
 use serde_json::Number;
@@ -9,21 +10,13 @@ pub enum TokenType {
     /// By default "bearer" is the token type that the concourse API will return since we are using
     /// the oauth2 flow. In the Concourse source code "bearer" appears as the default value.
     Bearer,
-
-    /// This a catch all for any token type that we don't know about. This will not occur here since
-    /// all the endpoints we are using in this implementation accept a bearer token.
-    Other(String),
 }
 
 impl<'de> Deserialize<'de> for TokenType {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    fn deserialize<D>(_: D) -> Result<Self, D::Error>
         where D: Deserializer<'de>
     {
-        let s = String::deserialize(deserializer)?;
-        Ok(match s.as_str() {
-            "bearer" => TokenType::Bearer,
-            _ => TokenType::Other(s),
-        })
+        Ok(TokenType::Bearer)
     }
 }
 
@@ -63,6 +56,7 @@ pub fn deserialize_to_duration<'de, D>(deserializer: D) -> Result<std::time::Dur
 #[cfg(test)]
 mod tests {
     use std::time::{Duration, SystemTime};
+
     use crate::concourse::token::{Token, TokenType};
 
     #[test]
@@ -82,23 +76,6 @@ mod tests {
         assert_eq!(token.expires_in, std::time::Duration::from_secs(123456));
         assert_eq!(token.id_token, String::from("token-id"));
         assert_eq!(token.token_type, TokenType::Bearer);
-        Ok(())
-    }
-
-    #[test]
-    fn will_successfully_deserialize_to_token_struct_selecting_other_for_token_type() -> Result<(), serde_json::Error> {
-        let string = r#"
-            {
-                "access_token": "token",
-                "expires_in": 123456,
-                "id_token": "token-id",
-                "token_type": "something-else"
-            }
-        "#;
-
-        let token: Token = serde_json::from_str(string)?;
-
-        assert_eq!(token.token_type, TokenType::Other(String::from("something-else")));
         Ok(())
     }
 
