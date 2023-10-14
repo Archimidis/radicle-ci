@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use serde::Deserialize;
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct RadicleApiUrl(String);
+pub struct RadicleApiUrl(pub String);
 
 impl Display for RadicleApiUrl {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

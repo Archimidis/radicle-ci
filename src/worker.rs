@@ -6,7 +6,7 @@ use radicle::prelude::{Id, ReadStorage};
 use radicle::Profile;
 use radicle_term as term;
 
-use crate::ci::{CI, CIJob};
+use crate::ci::{CI, CIJob, PipelineConfig};
 
 pub struct WorkerContext {
     patch_id: String,
@@ -17,7 +17,7 @@ pub struct WorkerContext {
 fn load_pipeline_configuration_from_commit(
     working: &Repository,
     commit_oid: Oid,
-) -> anyhow::Result<String> {
+) -> anyhow::Result<PipelineConfig> {
     let commit = working.find_commit(commit_oid)?;
 
     let tree = commit.tree()?;
@@ -27,7 +27,7 @@ fn load_pipeline_configuration_from_commit(
         if let Ok(blob) = entry.to_object(working) {
             if let Some(content) = blob.as_blob() {
                 let content_str = String::from_utf8_lossy(content.content());
-                return Ok(content_str.to_string());
+                return Ok(PipelineConfig(content_str.into()));
             }
         }
     }

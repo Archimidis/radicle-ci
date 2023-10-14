@@ -10,7 +10,7 @@ use crate::concourse::api::ConcourseAPI;
 use crate::concourse::build::{Build, BuildID};
 
 #[derive(Clone)]
-pub struct ConcourseUrl(String);
+pub struct ConcourseUrl(pub String);
 
 impl Display for ConcourseUrl {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

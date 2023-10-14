@@ -3,6 +3,8 @@ use std::process;
 use anyhow::anyhow;
 use radicle::profile::Profile;
 use radicle_term as term;
+use radicle_ci::ci::RadicleApiUrl;
+use radicle_ci::concourse::ci::ConcourseUrl;
 
 use radicle_ci::runtime::{CIConfig, Runtime};
 
@@ -86,11 +88,11 @@ pub fn execute() -> anyhow::Result<()> {
 
     term::info!("Radicle CI init ...");
     let ci_config = CIConfig {
-        concourse_url,
+        concourse_url: ConcourseUrl(concourse_url),
         ci_user: concourse_user,
         ci_pass: concourse_pass,
     };
-    let runtime = Runtime::new(profile, radicle_api_url, ci_config);
+    let runtime = Runtime::new(profile, RadicleApiUrl(radicle_api_url), ci_config);
     runtime.run()?;
 
     Ok(())
