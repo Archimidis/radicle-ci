@@ -1,6 +1,8 @@
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone)]
+use serde::Deserialize;
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct RadicleApiUrl(String);
 
 impl Display for RadicleApiUrl {
@@ -9,11 +11,47 @@ impl Display for RadicleApiUrl {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct PipelineConfig(pub String);
 
-pub type PipelineConfig = String;
-pub type PipelineName = String;
-pub type JobName = String;
-pub type BuildName = String;
+impl PipelineConfig {
+    pub fn replace(&self, old: &str, new: &str) -> PipelineConfig {
+        PipelineConfig(self.0.replace(old, new))
+    }
+}
+
+impl Display for PipelineConfig {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PipelineName(pub String);
+
+impl Display for PipelineName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct JobName(pub String);
+
+impl Display for JobName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct BuildName(pub String);
+
+impl Display for BuildName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 #[derive(Debug, PartialEq)]
 pub enum CIResultStatus {

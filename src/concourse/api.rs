@@ -232,7 +232,7 @@ impl ConcourseAPI {
             .header(AUTHORIZATION, format!("Bearer {access_token}"))
             .header(CONTENT_TYPE, "application/x-yaml")
             .header("X-Concourse-Config-Version", config_version)
-            .body(config.into())?;
+            .body(config.0.into())?;
 
         let response = self.client.request(request).await?;
         let status = response.status();

@@ -51,7 +51,7 @@ pub enum PipelineJob {
 }
 
 impl PipelineJob {
-    pub fn is_named(&self, job_name: &String) -> bool {
+    pub fn is_named(&self, job_name: &JobName) -> bool {
         match self {
             PipelineJob::TriggeredJob(job) => job.name == *job_name,
             PipelineJob::FinishedJob(job) => job.name == *job_name,
@@ -93,6 +93,7 @@ impl PipelineJob {
 
 #[cfg(test)]
 mod tests {
+    use crate::ci::JobName;
     use crate::concourse::pipeline_job::{Build, BuildStatus, JobInputs, PipelineJob};
 
     #[test]
@@ -232,7 +233,7 @@ mod tests {
         match job {
             PipelineJob::TriggeredJob(job) => {
                 assert_eq!(job.id, 76);
-                assert_eq!(job.name, "configure-pipeline");
+                assert_eq!(job.name, JobName("configure-pipeline".into()));
                 assert_eq!(job.team_name, "main");
                 assert_eq!(job.pipeline_id, 70);
                 assert_eq!(job.pipeline_name, "heartwood-configure");
@@ -274,7 +275,7 @@ mod tests {
         match job {
             PipelineJob::TriggeredJob(job) => {
                 assert_eq!(job.id, 76);
-                assert_eq!(job.name, "configure-pipeline");
+                assert_eq!(job.name, JobName("configure-pipeline".into()));
                 assert_eq!(job.team_name, "main");
                 assert_eq!(job.pipeline_id, 70);
                 assert_eq!(job.pipeline_name, "heartwood-configure");
@@ -328,7 +329,7 @@ mod tests {
         match job {
             PipelineJob::FinishedJob(job) => {
                 assert_eq!(job.id, 76);
-                assert_eq!(job.name, "configure-pipeline");
+                assert_eq!(job.name, JobName("configure-pipeline".into()));
                 assert_eq!(job.team_name, "main");
                 assert_eq!(job.pipeline_id, 70);
                 assert_eq!(job.pipeline_name, "heartwood-configure");
@@ -380,7 +381,7 @@ mod tests {
         match job {
             PipelineJob::FinishedJob(job) => {
                 assert_eq!(job.id, 76);
-                assert_eq!(job.name, "configure-pipeline");
+                assert_eq!(job.name, JobName("configure-pipeline".into()));
                 assert_eq!(job.team_name, "main");
                 assert_eq!(job.pipeline_id, 70);
                 assert_eq!(job.pipeline_name, "heartwood-configure");
@@ -410,7 +411,7 @@ mod tests {
         match job {
             PipelineJob::Job(job) => {
                 assert_eq!(job.id, 76);
-                assert_eq!(job.name, "configure-pipeline");
+                assert_eq!(job.name, JobName("configure-pipeline".into()));
                 assert_eq!(job.team_name, "main");
                 assert_eq!(job.pipeline_id, 70);
                 assert_eq!(job.pipeline_name, "heartwood-configure");

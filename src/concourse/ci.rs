@@ -78,7 +78,7 @@ impl CI for ConcourseCI {
     fn setup(&mut self, job: CIJob) -> Result<PipelineName, anyhow::Error> {
         self.runtime.block_on(async {
             let concourse_config = create_concourse_pipeline_config(&self.radicle_api_url, &job);
-            let pipeline_name: PipelineName = format!("{}-pipeline", job.project_id);
+            let pipeline_name = PipelineName(format!("{}-pipeline", job.project_id));
 
             let result = self.api.get_access_token().await;
             if result.is_err() {
