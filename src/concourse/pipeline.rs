@@ -1,8 +1,12 @@
 use serde::Deserialize;
 
-type PipelineID = usize;
-type BuildID = usize;
-type JobID = usize;
+use crate::concourse::build::BuildID;
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct PipelineID(pub usize);
+
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct JobID(pub usize);
 
 #[derive(Debug, Deserialize)]
 pub struct Pipeline {
@@ -19,7 +23,8 @@ pub struct Pipeline {
 
 #[cfg(test)]
 mod tests {
-    use crate::concourse::pipeline::Pipeline;
+    use crate::concourse::build::BuildID;
+    use crate::concourse::pipeline::{JobID, Pipeline, PipelineID};
 
     #[test]
     fn will_successfully_deserialize_pipeline() -> Result<(), serde_json::Error> {
@@ -36,7 +41,7 @@ mod tests {
 
         let pipeline = serde_json::from_str::<Pipeline>(json)?;
 
-        assert_eq!(pipeline.id, 101);
+        assert_eq!(pipeline.id, PipelineID(101));
         assert_eq!(pipeline.name, "heartwood");
         assert_eq!(pipeline.paused, false);
         assert_eq!(pipeline.public, false);
@@ -66,15 +71,15 @@ mod tests {
 
         let pipeline = serde_json::from_str::<Pipeline>(json)?;
 
-        assert_eq!(pipeline.id, 101);
+        assert_eq!(pipeline.id, PipelineID(101));
         assert_eq!(pipeline.name, "heartwood");
         assert_eq!(pipeline.paused, false);
         assert_eq!(pipeline.public, false);
         assert_eq!(pipeline.archived, false);
         assert_eq!(pipeline.team_name, "main");
         assert_eq!(pipeline.last_updated, 1692021169);
-        assert_eq!(pipeline.parent_build_id, Some(3156));
-        assert_eq!(pipeline.parent_job_id, Some(106));
+        assert_eq!(pipeline.parent_build_id, Some(BuildID(3156)));
+        assert_eq!(pipeline.parent_job_id, Some(JobID(106)));
 
         Ok(())
     }

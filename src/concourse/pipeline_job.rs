@@ -94,6 +94,8 @@ impl PipelineJob {
 #[cfg(test)]
 mod tests {
     use crate::ci::JobName;
+    use crate::concourse::build::BuildID;
+    use crate::concourse::pipeline::PipelineID;
     use crate::concourse::pipeline_job::{Build, BuildStatus, JobInputs, PipelineJob};
 
     #[test]
@@ -129,13 +131,13 @@ mod tests {
 
         let build = serde_json::from_str::<Build>(json)?;
 
-        assert_eq!(build.id, 2844);
+        assert_eq!(build.id, BuildID(2844));
         assert_eq!(build.name, "1");
         assert_eq!(build.status, BuildStatus::Pending);
         assert_eq!(build.start_time, Some(-62135596800));
         assert_eq!(build.end_time, Some(-62135596800));
         assert_eq!(build.team_name, "main");
-        assert_eq!(build.pipeline_id, 70);
+        assert_eq!(build.pipeline_id, PipelineID(70));
         assert_eq!(build.pipeline_name, "heartwood-configure");
         assert_eq!(build.job_name, "configure-pipeline");
         Ok(())
@@ -159,13 +161,13 @@ mod tests {
 
         let build = serde_json::from_str::<Build>(json)?;
 
-        assert_eq!(build.id, 2844);
+        assert_eq!(build.id, BuildID(2844));
         assert_eq!(build.name, "1");
         assert_eq!(build.status, BuildStatus::Started);
         assert_eq!(build.start_time, Some(1690735633));
         assert_eq!(build.end_time, Some(-62135596800));
         assert_eq!(build.team_name, "main");
-        assert_eq!(build.pipeline_id, 70);
+        assert_eq!(build.pipeline_id, PipelineID(70));
         assert_eq!(build.pipeline_name, "heartwood-configure");
         assert_eq!(build.job_name, "configure-pipeline");
         Ok(())
@@ -189,13 +191,13 @@ mod tests {
 
         let build = serde_json::from_str::<Build>(json)?;
 
-        assert_eq!(build.id, 2844);
+        assert_eq!(build.id, BuildID(2844));
         assert_eq!(build.name, "1");
         assert_eq!(build.status, BuildStatus::Succeeded);
         assert_eq!(build.start_time, Some(1690735633));
         assert_eq!(build.end_time, Some(1690735639));
         assert_eq!(build.team_name, "main");
-        assert_eq!(build.pipeline_id, 70);
+        assert_eq!(build.pipeline_id, PipelineID(70));
         assert_eq!(build.pipeline_name, "heartwood-configure");
         assert_eq!(build.job_name, "configure-pipeline");
         Ok(())

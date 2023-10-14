@@ -1,8 +1,16 @@
+use std::fmt::{Display, Formatter};
 use serde::{Deserialize, Deserializer};
 
-pub type BuildID = usize;
-type PipelineID = usize;
+use crate::concourse::pipeline::PipelineID;
 
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+pub struct BuildID(pub usize);
+
+impl Display for BuildID {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum BuildStatus {
@@ -59,7 +67,8 @@ impl Build {
 
 #[cfg(test)]
 mod tests {
-    use crate::concourse::build::{Build, BuildStatus};
+    use crate::concourse::build::{Build, BuildID, BuildStatus};
+    use crate::concourse::pipeline::PipelineID;
 
     #[test]
     fn will_successfully_deserialize_a_build() -> Result<(), serde_json::Error> {
@@ -80,13 +89,13 @@ mod tests {
 
         let build = serde_json::from_str::<Build>(json)?;
 
-        assert_eq!(build.id, 3094);
+        assert_eq!(build.id, BuildID(3094));
         assert_eq!(build.team_name, "main");
         assert_eq!(build.name, "4");
         assert_eq!(build.status, BuildStatus::Succeeded);
         assert_eq!(build.api_url, Some(String::from("/api/v1/builds/3094")));
         assert_eq!(build.job_name, "poc-job");
-        assert_eq!(build.pipeline_id, 101);
+        assert_eq!(build.pipeline_id, PipelineID(101));
         assert_eq!(build.pipeline_name, "heartwood");
         assert_eq!(build.start_time, Some(1692021331));
         assert_eq!(build.end_time, Some(1692021336));
