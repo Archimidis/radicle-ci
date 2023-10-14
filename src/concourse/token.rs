@@ -2,7 +2,7 @@ use std::string::FromUtf8Error;
 use std::time::SystemTime;
 
 use secstr::SecStr;
-use serde::{Deserialize, Deserializer};
+use serde::Deserialize;
 use serde_json::Number;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -12,11 +12,9 @@ pub enum TokenType {
     Bearer,
 }
 
-impl<'de> Deserialize<'de> for TokenType {
-    fn deserialize<D>(_: D) -> Result<Self, D::Error>
-        where D: Deserializer<'de>
-    {
-        Ok(TokenType::Bearer)
+impl Default for TokenType {
+    fn default() -> Self {
+        TokenType::Bearer
     }
 }
 
@@ -27,7 +25,10 @@ pub struct Token {
     #[serde(deserialize_with = "deserialize_to_duration")]
     pub expires_in: std::time::Duration,
     pub id_token: String,
+    #[serde(skip)]
+    #[serde(default)]
     pub token_type: TokenType,
+    #[serde(skip)]
     #[serde(default = "SystemTime::now")]
     pub created_at: SystemTime,
 }
