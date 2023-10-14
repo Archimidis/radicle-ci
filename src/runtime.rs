@@ -5,15 +5,17 @@ use radicle::node::{Event, Handle};
 use radicle::Profile;
 use radicle::storage::RefUpdate;
 use radicle_term as term;
+use crate::ci::RadicleApiUrl;
 
 use crate::concourse::ci;
+use crate::concourse::ci::{ConcourseUrl};
 use crate::pool::Pool;
 use crate::worker::WorkerContext;
 
 // TODO: Capture SIGINT and SIGTERM to gracefully shutdown
 
 pub struct CIConfig {
-    pub concourse_url: String,
+    pub concourse_url: ConcourseUrl,
     pub ci_user: String,
     pub ci_pass: String,
 }
@@ -26,7 +28,7 @@ pub struct Runtime {
 }
 
 impl Runtime {
-    pub fn new(profile: Profile, radicle_api_url: String, ci_config: CIConfig) -> Self {
+    pub fn new(profile: Profile, radicle_api_url: RadicleApiUrl, ci_config: CIConfig) -> Self {
         let (sender, receiver) = crossbeam_channel::unbounded::<WorkerContext>();
         let handle = ci::ConcourseCI::new(radicle_api_url, ci_config.concourse_url, ci_config.ci_user, ci_config.ci_pass);
 

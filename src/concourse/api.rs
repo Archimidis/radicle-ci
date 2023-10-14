@@ -9,6 +9,7 @@ use serde::Deserialize;
 
 use crate::ci::{BuildName, JobName, PipelineConfig, PipelineName};
 use crate::concourse::build::{Build, BuildID};
+use crate::concourse::ci::ConcourseUrl;
 use crate::concourse::pipeline::Pipeline;
 use crate::concourse::pipeline_configuration::PipelineConfiguration;
 use crate::concourse::pipeline_job::PipelineJob;
@@ -41,12 +42,12 @@ pub struct ConcourseAPI {
     client: Client<HttpsConnector<HttpConnector>>,
     ci_pass: String,
     ci_user: String,
-    concourse_uri: String,
+    concourse_uri: ConcourseUrl,
     token: Option<Token>,
 }
 
 impl ConcourseAPI {
-    pub fn new(concourse_uri: String, ci_user: String, ci_pass: String) -> ConcourseAPI {
+    pub fn new(concourse_uri: ConcourseUrl, ci_user: String, ci_pass: String) -> ConcourseAPI {
         let https = HttpsConnector::new();
         let client = Client::builder().build::<_, hyper::Body>(https);
         ConcourseAPI {
