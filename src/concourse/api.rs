@@ -7,9 +7,8 @@ use hyper::header::{AUTHORIZATION, CONTENT_LENGTH, CONTENT_TYPE};
 use hyper_tls::HttpsConnector;
 use serde::Deserialize;
 
-use crate::ci::{BuildName, JobName, PipelineConfig, PipelineName};
+use crate::ci::{BuildName, ConcourseUrl, JobName, PipelineConfig, PipelineName};
 use crate::concourse::build::{Build, BuildID};
-use crate::concourse::ci::ConcourseUrl;
 use crate::concourse::pipeline::Pipeline;
 use crate::concourse::pipeline_configuration::PipelineConfiguration;
 use crate::concourse::pipeline_job::PipelineJob;

@@ -1,22 +1,12 @@
-use std::fmt::{Display, Formatter};
 use std::time::Duration;
 
 use anyhow::anyhow;
 use radicle_term as term;
 use tokio::time::sleep;
 
-use crate::ci::{CI, CIJob, CIResult, CIResultStatus, PipelineConfig, PipelineName, RadicleApiUrl};
+use crate::ci::{CI, CIJob, CIResult, CIResultStatus, ConcourseUrl, PipelineConfig, PipelineName, RadicleApiUrl};
 use crate::concourse::api::ConcourseAPI;
 use crate::concourse::build::{Build, BuildID};
-
-#[derive(Clone)]
-pub struct ConcourseUrl(pub String);
-
-impl Display for ConcourseUrl {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
 
 pub struct ConcourseCI {
     runtime: tokio::runtime::Runtime,
@@ -37,7 +27,7 @@ impl Clone for ConcourseCI {
 }
 
 impl ConcourseCI {
-    pub fn new(radicle_api_url: RadicleApiUrl, concourse_url: ConcourseUrl, ci_user: String, ci_pass: String) -> Self {
+    pub fn new(radicle_api_url: RadicleApiUrl, concourse_url: ConcourseUrl, ci_user: String, ci_pass: String) -> ConcourseCI {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let api = ConcourseAPI::new(concourse_url.clone(), ci_user, ci_pass);
 

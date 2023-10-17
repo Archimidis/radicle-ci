@@ -4,15 +4,8 @@ use std::thread::JoinHandle;
 use crossbeam_channel::{Receiver, RecvError};
 use radicle_term as term;
 
-use crate::ci::{RadicleApiUrl};
-use crate::runtime::CIConfig;
-use crate::worker::{Worker, WorkerContext};
-
-#[derive(Clone)]
-pub struct Options {
-    pub radicle_api_url: RadicleApiUrl,
-    pub ci_config: CIConfig,
-}
+use crate::worker_pool::options::Options;
+use crate::worker_pool::worker::{Worker, WorkerContext};
 
 pub struct Pool {
     workers: Vec<JoinHandle<Result<(), RecvError>>>,
@@ -43,7 +36,7 @@ impl Pool {
                 term::info!("Worker {i} exited: {err}");
             }
         }
-        term::info!("Worker pool shutting down..");
+        term::info!("Worker worker_pool shutting down..");
 
         Ok(())
     }

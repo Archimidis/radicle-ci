@@ -2,6 +2,22 @@ use std::fmt::{Display, Formatter};
 
 use serde::Deserialize;
 
+#[derive(Clone)]
+pub struct ConcourseUrl(pub String);
+
+impl Display for ConcourseUrl {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Clone)]
+pub struct CIConfig {
+    pub concourse_url: ConcourseUrl,
+    pub ci_user: String,
+    pub ci_pass: String,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct RadicleApiUrl(pub String);
 

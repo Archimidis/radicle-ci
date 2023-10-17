@@ -3,10 +3,9 @@ use std::process;
 use anyhow::anyhow;
 use radicle::profile::Profile;
 use radicle_term as term;
-use radicle_ci::ci::RadicleApiUrl;
-use radicle_ci::concourse::ci::ConcourseUrl;
 
-use radicle_ci::runtime::{CIConfig, Runtime};
+use radicle_ci::ci::{CIConfig, ConcourseUrl, RadicleApiUrl};
+use radicle_ci::runtime::Runtime;
 
 pub const HELP_MSG: &str = r#"
 Usage

@@ -8,7 +8,7 @@ use radicle_term as term;
 
 use crate::ci::{CI, CIJob, PipelineConfig};
 use crate::concourse::ci::ConcourseCI;
-use crate::pool::Options;
+use crate::worker_pool::options::Options;
 
 pub struct WorkerContext {
     patch_id: String,

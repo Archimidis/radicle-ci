@@ -5,20 +5,13 @@ use radicle::node::{Event, Handle};
 use radicle::Profile;
 use radicle::storage::RefUpdate;
 use radicle_term as term;
-use crate::ci::{RadicleApiUrl};
+use crate::ci::{CIConfig, RadicleApiUrl};
 
-use crate::concourse::ci::{ConcourseUrl};
-use crate::pool::{Options, Pool};
-use crate::worker::WorkerContext;
+use crate::worker_pool::options::Options;
+use crate::worker_pool::pool::Pool;
+use crate::worker_pool::worker::WorkerContext;
 
 // TODO: Capture SIGINT and SIGTERM to gracefully shutdown
-
-#[derive(Clone)]
-pub struct CIConfig {
-    pub concourse_url: ConcourseUrl,
-    pub ci_user: String,
-    pub ci_pass: String,
-}
 
 pub struct Runtime {
     #[allow(dead_code)]
