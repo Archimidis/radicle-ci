@@ -6,7 +6,7 @@ use radicle::prelude::{Id, ReadStorage};
 use radicle::Profile;
 use radicle_term as term;
 
-use crate::ci::{CI, CIJob, PipelineConfig};
+use crate::ci::{CI, CIJob, CIObserver, CIResult, PipelineConfig};
 use crate::concourse::ci::ConcourseCI;
 use crate::worker_pool::options::Options;
 
@@ -50,6 +50,16 @@ pub struct Worker {
     options: Options,
 }
 
+#[derive(PartialEq)]
+struct PipelineObserver {
+
+}
+impl CIObserver for PipelineObserver {
+    fn update(&self, build: &CIResult) {
+        todo!()
+    }
+}
+
 impl Worker {
     pub fn new(id: usize, receiver: Receiver<WorkerContext>, options: Options) -> Self {
         Self { id, receiver, options }
@@ -90,7 +100,7 @@ impl Worker {
 
         term::info!("[{}] Worker received job {:#?}", self.id, ci_job);
         let Options { radicle_api_url, ci_config } = self.options.clone();
-        let mut ci = ConcourseCI::new(
+        let mut ci: ConcourseCI<PipelineObserver> = ConcourseCI::new(
             radicle_api_url,
             ci_config.concourse_url,
             ci_config.ci_user,

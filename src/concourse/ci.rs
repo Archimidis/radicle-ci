@@ -4,34 +4,24 @@ use anyhow::anyhow;
 use radicle_term as term;
 use tokio::time::sleep;
 
-use crate::ci::{CI, CIJob, CIResult, CIResultStatus, ConcourseUrl, PipelineConfig, PipelineName, RadicleApiUrl};
+use crate::ci::{CI, CIJob, CIObserver, CIResult, CIResultStatus, ConcourseUrl, PipelineConfig, PipelineName, RadicleApiUrl};
 use crate::concourse::api::ConcourseAPI;
 use crate::concourse::build::{Build, BuildID};
 
-pub struct ConcourseCI {
+pub struct ConcourseCI<T> where T: CIObserver {
     runtime: tokio::runtime::Runtime,
     api: ConcourseAPI,
     radicle_api_url: RadicleApiUrl,
     concourse_url: ConcourseUrl,
+    observers: Vec<T>,
 }
 
-impl Clone for ConcourseCI {
-    fn clone(&self) -> Self {
-        Self {
-            runtime: tokio::runtime::Runtime::new().unwrap(),
-            api: self.api.clone(),
-            radicle_api_url: self.radicle_api_url.clone(),
-            concourse_url: self.concourse_url.clone(),
-        }
-    }
-}
-
-impl ConcourseCI {
-    pub fn new(radicle_api_url: RadicleApiUrl, concourse_url: ConcourseUrl, ci_user: String, ci_pass: String) -> ConcourseCI {
+impl<T> ConcourseCI<T> where T: CIObserver {
+    pub fn new(radicle_api_url: RadicleApiUrl, concourse_url: ConcourseUrl, ci_user: String, ci_pass: String) -> Self {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let api = ConcourseAPI::new(concourse_url.clone(), ci_user, ci_pass);
 
-        Self { runtime, api, concourse_url, radicle_api_url }
+        Self { runtime, api, concourse_url, radicle_api_url, observers: vec![] }
     }
 
     pub async fn watch_pipeline_job_build(&mut self, build_id: BuildID) -> Result<Build, anyhow::Error> {
@@ -64,7 +54,7 @@ fn create_concourse_pipeline_config(radicle_api_url: &RadicleApiUrl, job: &CIJob
         .replace("((patch_head))", job.patch_head.as_str())
 }
 
-impl CI for ConcourseCI {
+impl<T> CI for ConcourseCI<T> where T: CIObserver {
     fn setup(&mut self, job: CIJob) -> Result<PipelineName, anyhow::Error> {
         self.runtime.block_on(async {
             let concourse_config = create_concourse_pipeline_config(&self.radicle_api_url, &job);

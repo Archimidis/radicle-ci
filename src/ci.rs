@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 
 use serde::Deserialize;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct ConcourseUrl(pub String);
 
 impl Display for ConcourseUrl {
@@ -11,7 +11,7 @@ impl Display for ConcourseUrl {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct CIConfig {
     pub concourse_url: ConcourseUrl,
     pub ci_user: String,
@@ -119,7 +119,7 @@ pub trait CIObservable<'a, T> where T: CIObserver {
     fn notify(&self, build: &CIResult);
 }
 
-pub trait CI: Clone {
+pub trait CI {
     fn setup(&mut self, job: CIJob) -> Result<PipelineName, anyhow::Error>;
     fn run_pipeline(&mut self, pipeline_name: &PipelineName) -> Result<CIResult, anyhow::Error>;
 }
