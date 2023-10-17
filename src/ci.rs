@@ -110,7 +110,7 @@ pub struct CIJob {
 }
 
 pub trait CIObserver: PartialEq {
-    fn update(&self, build: &CIResult);
+    fn update(&mut self, build: &CIResult);
 }
 
 pub trait CIObservable<'a, T> where T: CIObserver {
