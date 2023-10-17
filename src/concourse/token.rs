@@ -6,17 +6,15 @@ use serde::Deserialize;
 use serde_json::Number;
 
 #[derive(Debug, Clone, PartialEq)]
+#[derive(Default)]
 pub enum TokenType {
     /// By default "bearer" is the token type that the concourse API will return since we are using
     /// the oauth2 flow. In the Concourse source code "bearer" appears as the default value.
+    #[default]
     Bearer,
 }
 
-impl Default for TokenType {
-    fn default() -> Self {
-        TokenType::Bearer
-    }
-}
+
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Token {

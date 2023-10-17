@@ -43,9 +43,9 @@ mod tests {
 
         assert_eq!(pipeline.id, PipelineID(101));
         assert_eq!(pipeline.name, "heartwood");
-        assert_eq!(pipeline.paused, false);
-        assert_eq!(pipeline.public, false);
-        assert_eq!(pipeline.archived, false);
+        assert!(!pipeline.paused);
+        assert!(!pipeline.public);
+        assert!(!pipeline.archived);
         assert_eq!(pipeline.team_name, "main");
         assert_eq!(pipeline.last_updated, 1692021169);
         assert_eq!(pipeline.parent_build_id, None);
@@ -73,9 +73,9 @@ mod tests {
 
         assert_eq!(pipeline.id, PipelineID(101));
         assert_eq!(pipeline.name, "heartwood");
-        assert_eq!(pipeline.paused, false);
-        assert_eq!(pipeline.public, false);
-        assert_eq!(pipeline.archived, false);
+        assert!(!pipeline.paused);
+        assert!(!pipeline.public);
+        assert!(!pipeline.archived);
         assert_eq!(pipeline.team_name, "main");
         assert_eq!(pipeline.last_updated, 1692021169);
         assert_eq!(pipeline.parent_build_id, Some(BuildID(3156)));
