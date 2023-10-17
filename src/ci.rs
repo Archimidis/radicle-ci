@@ -93,7 +93,18 @@ pub struct CIJob {
     pub pipeline_config: PipelineConfig,
 }
 
+pub trait CIObserver: PartialEq {
+    fn update(&self, build: &CIResult);
+}
+
+pub trait CIObservable<'a, T> where T: CIObserver {
+    fn attach(&mut self, observer: &'a T);
+    fn detach(&mut self, observer: &'a T);
+    fn notify(&self, build: &CIResult);
+}
+
 pub trait CI: Clone {
     fn setup(&mut self, job: CIJob) -> Result<PipelineName, anyhow::Error>;
     fn run_pipeline(&mut self, pipeline_name: &PipelineName) -> Result<CIResult, anyhow::Error>;
 }
+
