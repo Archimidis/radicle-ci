@@ -7,6 +7,8 @@ use radicle::Profile;
 use radicle_term as term;
 
 use crate::ci::{CI, CIJob, PipelineConfig};
+use crate::concourse::ci::ConcourseCI;
+use crate::pool::Options;
 
 pub struct WorkerContext {
     patch_id: String,
@@ -42,15 +44,15 @@ impl WorkerContext {
     }
 }
 
-pub struct Worker<T: CI + Send> {
+pub struct Worker {
     pub(crate) id: usize,
     receiver: Receiver<WorkerContext>,
-    ci: T,
+    options: Options,
 }
 
-impl<T: CI + Send> Worker<T> {
-    pub fn new(id: usize, receiver: Receiver<WorkerContext>, ci: T) -> Self {
-        Self { id, receiver, ci }
+impl Worker {
+    pub fn new(id: usize, receiver: Receiver<WorkerContext>, options: Options) -> Self {
+        Self { id, receiver, options }
     }
 
     pub fn run(&mut self) -> Result<(), RecvError> {
@@ -87,8 +89,15 @@ impl<T: CI + Send> Worker<T> {
             );
 
         term::info!("[{}] Worker received job {:#?}", self.id, ci_job);
-        self.ci.setup(ci_job)
-            .and_then(|pipeline_name| self.ci.run_pipeline(&pipeline_name))
+        let Options { radicle_api_url, ci_config } = self.options.clone();
+        let mut ci = ConcourseCI::new(
+            radicle_api_url,
+            ci_config.concourse_url,
+            ci_config.ci_user,
+            ci_config.ci_pass
+        );
+        ci.setup(ci_job)
+            .and_then(|pipeline_name| ci.run_pipeline(&pipeline_name))
             .map(|ci_result| {
                 let signer = profile.signer().unwrap();
                 let (revision_id, _) = patch.revisions().last().unwrap();

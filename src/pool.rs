@@ -4,21 +4,28 @@ use std::thread::JoinHandle;
 use crossbeam_channel::{Receiver, RecvError};
 use radicle_term as term;
 
-use crate::ci::{CI};
+use crate::ci::{RadicleApiUrl};
+use crate::runtime::CIConfig;
 use crate::worker::{Worker, WorkerContext};
+
+#[derive(Clone)]
+pub struct Options {
+    pub radicle_api_url: RadicleApiUrl,
+    pub ci_config: CIConfig,
+}
 
 pub struct Pool {
     workers: Vec<JoinHandle<Result<(), RecvError>>>,
 }
 
 impl Pool {
-    pub fn with<T: 'static + CI + Send>(receiver: Receiver<WorkerContext>, handle: T) -> Self {
+    pub fn with(receiver: Receiver<WorkerContext>, options: Options) -> Self {
         // TODO: Make capacity configurable
         let capacity = 5;
         let mut workers = Vec::with_capacity(capacity);
 
         for i in 0..capacity {
-            let mut worker = Worker::new(i, receiver.clone(), handle.clone());
+            let mut worker = Worker::new(i, receiver.clone(), options.clone());
             let thread = thread::Builder::new().name(format!("worker-{i}")).spawn(move || {
                 term::info!("[{}] Worker {} started", i, worker.id);
                 worker.run()
