@@ -105,6 +105,8 @@ impl<T> CI for ConcourseCI<T> where T: CIObserver {
     }
 
     fn run_pipeline(&mut self, pipeline_name: &PipelineName) -> Result<CIResult, anyhow::Error> {
+        let observer = self.observer.as_mut();
+
         self.runtime.block_on(async {
             let concourse_url = &self.concourse_url.clone();
             let result = self.api.get_all_pipeline_jobs(pipeline_name)
@@ -141,7 +143,7 @@ impl<T> CI for ConcourseCI<T> where T: CIObserver {
             };
 
             watch_build_result.map(|build| {
-                CIResult {
+                let ci_result = CIResult {
                     status: if build.has_completed_successfully() { CIResultStatus::Success } else { CIResultStatus::Failure },
                     url: format!("{}/teams/main/pipelines/{}/jobs/{}/builds/{}",
                                  concourse_url,
@@ -149,7 +151,10 @@ impl<T> CI for ConcourseCI<T> where T: CIObserver {
                                  build.job_name,
                                  build.name,
                     ),
-                }
+                };
+
+                observer.unwrap().update(&ci_result);
+                ci_result
             })
         })
     }

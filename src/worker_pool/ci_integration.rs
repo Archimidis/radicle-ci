@@ -2,7 +2,7 @@ use radicle::cob::patch::{PatchMut, RevisionId};
 use radicle::prelude::Signer;
 use radicle_term as term;
 
-use crate::ci::{CI, CIJob, CIObserver, CIResult};
+use crate::ci::{CI, CIJob, CIObservable, CIObserver, CIResult};
 use crate::concourse::ci::ConcourseCI;
 use crate::worker_pool::options::Options;
 
@@ -34,6 +34,7 @@ impl<'a, 'g, R> CIIntegration<'a, 'g, R>
 
     pub fn execute(mut self, ci_job: CIJob, options: Options) {
         let id = self.worker_id;
+        let (revision_id, _) = self.patch.revisions().last().unwrap();
         let Options { radicle_api_url, ci_config } = options;
         let mut ci: ConcourseCI<Self> = ConcourseCI::new(
             radicle_api_url,
@@ -41,16 +42,10 @@ impl<'a, 'g, R> CIIntegration<'a, 'g, R>
             ci_config.ci_user,
             ci_config.ci_pass,
         );
-
-        let (revision_id, _) = self.patch.revisions().last().unwrap();
-
         self.create_patch_revision_comment(revision_id, String::from("New CI build is starting"));
+        ci.attach(Box::new(self));
         ci.setup(ci_job)
             .and_then(|pipeline_name| ci.run_pipeline(&pipeline_name))
-            .map(|ci_result| {
-                term::info!("[{}] Pipeline result: {}", id, ci_result.get_report_message());
-                self.create_patch_revision_comment(revision_id, ci_result.get_report_message());
-            })
             .map_or_else(
                 |error| term::info!("[{}] CI pipeline job encountered an error: {:?}", id, error),
                 |_| term::info!("[{}] CI pipeline job completed and revision comment added to patch", id),
