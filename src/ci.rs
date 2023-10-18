@@ -113,10 +113,10 @@ pub trait CIObserver: PartialEq {
     fn update(&mut self, build: &CIResult);
 }
 
-pub trait CIObservable<'a, T> where T: CIObserver {
-    fn attach(&mut self, observer: &'a T);
-    fn detach(&mut self, observer: &'a T);
-    fn notify(&self, build: &CIResult);
+pub trait CIObservable<T> where T: CIObserver {
+    fn attach(&mut self, observer: Box<T>);
+    fn detach(&mut self);
+    fn notify(&mut self, build: &CIResult);
 }
 
 pub trait CI {
