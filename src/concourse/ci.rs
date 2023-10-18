@@ -4,7 +4,7 @@ use anyhow::anyhow;
 use radicle_term as term;
 use tokio::time::sleep;
 
-use crate::ci::{CI, CIJob, CIObserver, CIResult, CIResultStatus, ConcourseUrl, PipelineConfig, PipelineName, RadicleApiUrl};
+use crate::ci::{CI, CIJob, CIObservable, CIObserver, CIResult, CIResultStatus, ConcourseUrl, PipelineConfig, PipelineName, RadicleApiUrl};
 use crate::concourse::api::ConcourseAPI;
 use crate::concourse::build::{Build, BuildID};
 
@@ -13,15 +13,32 @@ pub struct ConcourseCI<T> where T: CIObserver {
     api: ConcourseAPI,
     radicle_api_url: RadicleApiUrl,
     concourse_url: ConcourseUrl,
-    observers: Vec<T>,
+    observer: Option<Box<T>>,
 }
+
+impl<T> CIObservable<T> for ConcourseCI<T> where T: CIObserver {
+    fn attach(&mut self, observer: Box<T>) {
+        self.observer = Some(observer);
+    }
+
+    fn detach(&mut self) {
+        self.observer = None;
+    }
+
+    fn notify(&mut self, ci_result: &CIResult) {
+        if self.observer.is_some() {
+            self.observer.as_mut().unwrap().update(ci_result);
+        }
+    }
+}
+
 
 impl<T> ConcourseCI<T> where T: CIObserver {
     pub fn new(radicle_api_url: RadicleApiUrl, concourse_url: ConcourseUrl, ci_user: String, ci_pass: String) -> Self {
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let api = ConcourseAPI::new(concourse_url.clone(), ci_user, ci_pass);
 
-        Self { runtime, api, concourse_url, radicle_api_url, observers: vec![] }
+        Self { runtime, api, concourse_url, radicle_api_url, observer: None }
     }
 
     pub async fn watch_pipeline_job_build(&mut self, build_id: BuildID) -> Result<Build, anyhow::Error> {
