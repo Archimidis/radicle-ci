@@ -72,15 +72,16 @@ impl Worker {
         let (revision_id, _) = patch.revisions().last().unwrap();
         let signer = profile.signer().unwrap();
 
-        term::info!("[{}] Loading project CI configuration file", self.id);
-        let concourse_config = get_file_contents_from_commit(&repository.backend, **patch.head(), ".concourse/config.yaml").unwrap();
-        let ci_job = CIJob {
-            patch_revision_id: revision_id.clone().to_string(),
-            patch_head: patch.head().to_string(),
-            project_id: repository_id.clone(),
-            pipeline_config: PipelineConfig(concourse_config),
-        };
-        let pipeline = CIIntegration::new(self.id, patch, signer);
-        pipeline.execute(ci_job, self.options.clone());
+        if let Ok(concourse_config) = get_file_contents_from_commit(&repository.backend, **patch.head(), ".concourse/config.yaml") {
+            term::info!("[{}] Concourse CI configuration found", self.id);
+            let ci_job = CIJob {
+                patch_revision_id: revision_id.clone().to_string(),
+                patch_head: patch.head().to_string(),
+                project_id: repository_id.clone(),
+                pipeline_config: PipelineConfig(concourse_config),
+            };
+            let pipeline = CIIntegration::new(self.id, patch, signer);
+            pipeline.execute(ci_job, self.options.clone());
+        }
     }
 }
