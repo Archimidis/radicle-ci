@@ -7,6 +7,7 @@ use radicle::Profile;
 use radicle_term as term;
 
 use crate::ci::{CIJob, PipelineConfig};
+use crate::repository::get_file_contents_from_commit;
 use crate::worker_pool::ci_integration::CIIntegration;
 use crate::worker_pool::options::Options;
 
@@ -72,11 +73,12 @@ impl Worker {
         let signer = profile.signer().unwrap();
 
         term::info!("[{}] Loading project CI configuration file", self.id);
+        let concourse_config = get_file_contents_from_commit(&repository.backend, **patch.head(), ".concourse/config.yaml").unwrap();
         let ci_job = CIJob {
             patch_revision_id: revision_id.clone().to_string(),
             patch_head: patch.head().to_string(),
             project_id: repository_id.clone(),
-            pipeline_config: load_pipeline_configuration_from_commit(&repository.backend, **patch.head()).unwrap(),
+            pipeline_config: PipelineConfig(concourse_config),
         };
         let pipeline = CIIntegration::new(self.id, patch, signer);
         pipeline.execute(ci_job, self.options.clone());
